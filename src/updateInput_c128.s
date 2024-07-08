@@ -45,10 +45,16 @@ lda #3
 sta framesToNextUpdate
 sta somethingToRead
 
-; query the keyboard line containing <Ctrl>ADGJL;<Right>
+	;; direction registers : 1 is read/write
+	lda #$ff
+	sta $dc02
+	sta $dc03
+	
+; query the keyboard line containing (VIC) <Ctrl>ADGJL;<Right>
+; query the keyboard line containing (c128) <Right>ADGJL;<Ctrl>
 lda #$fb
-sta $dc00
-lda $dc01
+sta $dc01
+lda $dc00
 eor #$ff
 tax
 and #$36 ; get ADJL
@@ -56,14 +62,15 @@ ora keys
 sta keys
 txa
 asl
-and #2
+and #2 			
 ora ctrlKeys
 sta ctrlKeys
 
-; query the keyboard line containing <Left>WRYIP*<Ret>
+; query the keyboard line containing (VIC) <Left>WRYIP*<Ret>
+; query the keyboard line containing (c128) <Ret>WRYIP*<Left>  
 lda #$fd
-sta $dc00
-lda $dc01
+sta $dc01
+lda $dc00
 eor #$ff
 tax
 asl
@@ -76,10 +83,11 @@ and #$81
 ora ctrlKeys
 sta ctrlKeys
 
-; query the keyboard line containing <CBM>SFHK:=<F3>
+; query the keyboard line containing (VIC) <CBM>SFHK:=<F3>
+; query the keyboard line containing (c128) <F3>SFHK:=<CBM>  
 lda #$df
-sta $dc00
-lda $dc01
+sta $dc01
+lda $dc00
 eor #$ff
 tax
 lsr

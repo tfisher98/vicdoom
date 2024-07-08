@@ -307,7 +307,7 @@ sm: lda #0 ; health
 :
     jsr _readInput
     jsr _getControlKeys
-    and #$80 ; KEY_RETURN
+    and #$01 ; KEY_RETURN (0x80 on VIC)
     beq again
     rts
 

@@ -24,5 +24,5 @@ char __fastcall__ getControlKeys(void);
 #define KEY_TURNRIGHT KEY_L
 
 #define KEY_CTRL   0x02
-#define KEY_ESC    0x01
-#define KEY_RETURN 0x80
+#define KEY_ESC    0x40 // ??0x80 on c128 for back arrow ?? 0x01 on VIC
+#define KEY_RETURN 0x01 // 0x80 on VIC
