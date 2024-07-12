@@ -52,7 +52,7 @@ vicraster := $d012
 	
 _eraseMessage:
 
-ldx charrowsize
+ldx #40
 lda #32
 woop:
 sta message1,x
@@ -112,7 +112,7 @@ sta yyy
 outerloop:
 ;;  start with yyy in A
 clc
-adc firstbitmapchar	
+adc #64 			; first bitmap char
 ldx #0
 innerloop:
 
@@ -126,14 +126,14 @@ sta bitmapcolorstart,x 		; selfmod address
 tya
 	
 clc
-adc bitmaprows
+adc #8 				; bitmaprows
 inx
-cpx #bitmapcols	
+cpx #8 				; bitmapcols
 bne innerloop
 
 lda bitmapwritechar+1
 clc
-adc charrowsize
+adc #40
 sta bitmapwritechar+1
 sta bitmapwritecolor+1
 bcc :+
