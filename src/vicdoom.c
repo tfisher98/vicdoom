@@ -462,8 +462,8 @@ char flashBorderTime = 0;
 void __fastcall__ drawHudArmor(void)
 {
     char armorColor = 5 + combatArmor;
-    POKE(0x1000 + 22*21 + 13, 30); // armor symbol in font
-    POKE(0x9400 + 22*21 + 13, armorColor);
+    POKE(0x0400 + 22*21 + 13, 30); // armor symbol in font
+    POKE(0xd800 + 22*21 + 13, armorColor);
     setTextColor(armorColor);
     print3DigitNumToScreen(armor, 0x1000 + 22*21 + 14);
 }
@@ -474,13 +474,13 @@ void __fastcall__ drawHudAmmo(void)
 {
   // weapon and ammo
   char sym = weaponSymbol[weapon];
-  POKE(0x1000 + 22*21 + 1, sym);
-  POKE(0x9400 + 22*21 + 1, 3);
+  POKE(0x0400 + 22*21 + 1, sym);
+  POKE(0xd800 + 22*21 + 1, 3);
   if (weapon < 2)
   {
-    POKE(0x1000 + 22*21 + 2, 32);
-    POKE(0x1000 + 22*21 + 3, 32);
-    POKE(0x1000 + 22*21 + 4, 32);
+    POKE(0x0400 + 22*21 + 2, 32);
+    POKE(0x0400 + 22*21 + 3, 32);
+    POKE(0x0400 + 22*21 + 4, 32);
   }
   else
   {
@@ -492,8 +492,8 @@ void __fastcall__ drawHudAmmo(void)
 void __fastcall__ drawHudHealth(void)
 {
   // health
-  POKE(0x1000 + 22*21 + 5, '/');
-  POKE(0x9400 + 22*21 + 5, 2);
+  POKE(0x0400 + 22*21 + 5, '/');
+  POKE(0xd800 + 22*21 + 5, 2);
   setTextColor(2);
   print3DigitNumToScreen(health, 0x1000 + 22*21 + 6);
 }
@@ -1608,7 +1608,7 @@ char reloadStage = 0;
 void __fastcall__ setUpScreenForBitmap(void)
 {
   clearScreen();
-  setupBitmap(8 + 2); // multicolor red
+  setupBitmap(COLOR_BLUE+8); 
 }
 
 void __fastcall__ setUpScreenForMenu(void)
@@ -1619,7 +1619,7 @@ void __fastcall__ setUpScreenForMenu(void)
 void __fastcall__ setUpScreenForGameplay(void)
 {
   clearMenuArea();
-  setupBitmap(8 + 2); // multicolor red
+  setupBitmap(COLOR_BLUE+8); 
   POKE(0x900F, 8 + 5); // green border, and black screen
   drawBorders(29);
   // name of level
@@ -1902,14 +1902,21 @@ int main()
   bordercolor(COLOR_RED);
 
   load_data_file("pstackcode");
-
-  cputsxy(0, 3, "arrgh");
-  POKE(217,4);  // kernal screen irq shadow location for bit 2 of processor port $01 : disable rom charset
-  POKE(2604,25); // kernal screen irq shadow location for text screen $d018 : charset at $2000, screen at $0400
-  POKE(0xd018,25); // ??? unshadowed?
-  POKE(0xd016,0x18); // MC mode, unless kernel irq is messing it
   
-  playSoundInitialize();
+  playSoundInitialize(); // takes over IRQ so now its our IRQ not kernal
+
+  POKE(0xd018,25); // unshadowed : charset at $2000, screen at $0400
+  POKE(0xd016,0x18); // MC mode
+  POKE(0xd022,COLOR_YELLOW);
+  POKE(0xd023,COLOR_ORANGE);
+
+  // processor port 1 :
+  // bit 0 : cpu color bank
+  // bit 1 : vic color bank
+  // bit 2 : CHAREN : 0 vic sees char ROM; 1 vic sees RAM
+  // bit 3-5 : cassette write/sense/motor
+  // bit 6 : capslock
+  POKE(0x01,4); // VIC, CPU both use color bank 0, custom characters 
 
   bordercolor(COLOR_YELLOW);
   
