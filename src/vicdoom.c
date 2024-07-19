@@ -1907,6 +1907,7 @@ int main()
   POKE(217,4);  // kernal screen irq shadow location for bit 2 of processor port $01 : disable rom charset
   POKE(2604,25); // kernal screen irq shadow location for text screen $d018 : charset at $2000, screen at $0400
   POKE(0xd018,25); // ??? unshadowed?
+  POKE(0xd016,0x18); // MC mode, unless kernel irq is messing it
   
   playSoundInitialize();
 

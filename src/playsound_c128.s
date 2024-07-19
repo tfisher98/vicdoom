@@ -18,8 +18,9 @@
 .import updateInput
 
 irqVector = $314
-irqContinue = $fa65		; normal c128 $314 vector : does basic spr move, screen split, etc
-	;; $ff33 ? interrupt exit point
+irqContinue = $ff33
+	;; $fa65 ; normal c128 $314 vector : does basic spr move, screen split, etc
+	;; $ff33 ; interrupt exit point
 
 
 ; format of a song is
@@ -205,6 +206,7 @@ bpl loop2
 
 end:
 inc $D020
+asl $D019	
 jmp irqContinue
 
 nextEvent:
