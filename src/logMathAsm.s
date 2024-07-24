@@ -1,4 +1,4 @@
-.setcpu "6502"
+.setcpu "6502X"
 .autoimport	on
 .export log2
 .export exp2
@@ -90,8 +90,7 @@ cameraY = $59
 
 .macro loadaxfromstack offs
 	ldy #offs
-	lda (sp),y
-	tax
+	lax (sp),y
 	dey
 	lda (sp),y
 .endmacro
@@ -104,23 +103,21 @@ cameraY = $59
  	txa
  	eor	#$FF
  	adc	#0
-  tax
+	tax
  	tya
 .endmacro
 
 .macro add_to_stack val
 .local skip
-  ldy #val
-  pha
+	tay
  	clc
- 	tya
+ 	lda     #val
  	adc	sp
  	sta	sp
  	bcc	skip
  	inc	sp+1
-skip:	pla
+skip:	tya
 .endmacro
-
 
 ; ---------------------------------------------------------------
 ; unsigned int __near__ __fastcall__ log2 (unsigned int x)
@@ -139,33 +136,67 @@ skip:	pla
 ;      }
 ;      v = e*256 + log2[x&255];
 
+;;;  original version : average 60 cycles
+;; .proc log2:near
+
+;; sta tmple
+;; txa
+;; bne startshiftdown
+;; ldx #0
+;; shiftup:
+;; dex
+;; asl tmple
+;; rol
+;; beq shiftup
+;; bne finishedshifting
+;; startshiftdown:
+;; ldx #0
+;; shiftdown:
+;; lsr
+;; beq finishedshifting
+;; ror tmple
+;; inx
+;; jmp shiftdown
+;; finishedshifting:
+;; ldy tmple
+;; lda log2tab,y
+;; rts
+
+;; .endproc
+
+;;;  optimized version : average 50 cycles
+;; code structure chosen so all branches taken <50% of time in practice
 .proc log2:near
-
-sta tmple
-txa
-bne startshiftdown
-ldx #0
-shiftup:
-dex
-asl tmple
-rol
-beq shiftup
-bne finishedshifting
-startshiftdown:
-ldx #0
+	sta tmple
+	txa
+	beq shiftup
+	ldx #0
 shiftdown:
-lsr
-beq finishedshifting
-ror tmple
-inx
-jmp shiftdown
+	lsr
+	beq finishedshifting
+	ror tmple
+	inx
+	lsr
+	beq finishedshifting
+	ror tmple
+	inx
+	bne shiftdown 		; always taken
+shiftup2: 			
+	dex
+	asl tmple
+	rol
+	bne finishedshifting
+shiftup:
+	dex
+	asl tmple
+	rol
+	beq shiftup2
 finishedshifting:
-ldy tmple
-lda log2tab,y
-rts
-
+	ldy tmple
+	lda log2tab,y
+	rts
 .endproc
-
+	
 ; ---------------------------------------------------------------
 ; unsigned int __near__ __fastcall__ exp2 (unsigned int x)
 ; ---------------------------------------------------------------
@@ -184,39 +215,67 @@ rts
 ;         e++;
 ;      }
 
+;;; original version : average 68 cycles
+;; .proc exp2:near
+;; tay
+;; lda #1
+;; sta tmple
+;; lda exp2tab,y
+;; cpx #0
+;; beq done
+;; bmi shiftdown
+;; bpl shiftup
+;; done:
+;; ldx #1
+;; rts
+;; shiftup:
+;; asl
+;; rol tmple
+;; dex
+;; bne shiftup
+;; ldx tmple
+;; rts
+;; shiftdown:
+;; lsr tmple
+;; ror
+;; inx
+;; bne shiftdown
+;; ldx tmple
+;; rts
+;; .endproc
+
+;;; optimized : average 67 cycles? should be ~3 less than original
 .proc exp2:near
-
-tay
-lda #1
-sta tmple
-lda exp2tab,y
-cpx #0
-beq done
-bmi shiftdown
-bpl shiftup
-
-done:
-ldx #1
-rts
-
-shiftup:
-asl
-rol tmple
-dex
-bne shiftup
-ldx tmple
-rts
-
+	tay
+	lda #1
+	sta tmple
+	lda exp2tab,y
+	cpx #0
+	bpl maybeshiftup
 shiftdown:
-lsr tmple
-ror
-inx
-bne shiftdown
-ldx tmple
-rts
-
+	lsr tmple
+	ror
+	inx
+	beq done
+	lsr tmple
+	ror
+	inx
+	bne shiftdown
+	ldx tmple
+	rts	
+shiftup:
+	asl
+	rol tmple
+	dex
+maybeshiftup:	
+	bne shiftup
+done:	
+	ldx tmple
+	rts
+	
 .endproc
 
+	
 ; ---------------------------------------------------------------
 ; unsigned int __near__ __fastcall__ _div88(unsigned int x, unsigned int y)
 ; ---------------------------------------------------------------
@@ -236,10 +295,9 @@ sbc tmp+3
 tax
 tya
 jsr exp2
-
 add_to_stack 2
 rts
-
+	
 .endproc
 
 ; ---------------------------------------------------------------

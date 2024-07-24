@@ -244,6 +244,7 @@ void __fastcall__ drawWall(char sectorIndex, char curEdgeIndex, char nextEdgeInd
   
   // add 128 to correct for sampling in the center of the column
   //x4 = (256*x_L + 128)/HALFSCREENWIDTH;
+  //TWF assumes HALFSCREENWIDTH=16 so x4 = 16*x_L + 8 = (2*x_L + 1)*8 with the *8 happening below 
   x4 = 2*x_L + 1; // need to multiply by 8 later
   for (curX = x_L; curX < x_R; ++curX)
   {
@@ -1620,7 +1621,7 @@ void __fastcall__ setUpScreenForGameplay(void)
 {
   clearMenuArea();
   setupBitmap(COLOR_BLUE+8); 
-  POKE(0x900F, 8 + 5); // green border, and black screen
+  //POKE(0x900F, 8 + 5); // green border, and black screen
   drawBorders(29);
   // name of level
   textcolor(2);

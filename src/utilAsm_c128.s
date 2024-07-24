@@ -559,24 +559,31 @@ _sqrt24:
 
 ; x <- eax
 sta xxxx
+sta bbbb 			; first round b = x-(y|m) with y=0,m=0x100000
 stx xxxx+1
+stx bbbb+1	                ; first round b = x-(y|m) with y=0,m=0x100000
 lda sreg
 sta xxxx+2
-
+sec
+sbc #$10
+sta bbbb+2	                ; first round b = x-(y|m) with y=0,m=0x100000
+	
 ; mmmm = 0x100000
 ; yyyy = 0
 lda #0
-ldx #4
-:
-sta yyyy,x
-dex
-bpl :-
+sta yyyy
+sta yyyy+1
+sta yyyy+2
+sta mmmm	
+sta mmmm+1
 lda #$10
 sta mmmm+2
 
 ; for (i = 11; i != 0; --i)
-ldy #10
-
+ldy #10				
+lda bbbb+2			; flags right for bmi @skipacc
+jmp @sqrtloopentry 		; first round init b,y above
+	
 @sqrtloop:
 
 ; b = y | m
@@ -607,6 +614,7 @@ lda xxxx+2
 sbc bbbb+2
 sta bbbb+2
 
+@sqrtloopentry:
 ; if (b >= 0)
 bmi @skipacc
 
