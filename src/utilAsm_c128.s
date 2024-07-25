@@ -43,6 +43,8 @@ charcolorstart := $d800
 message1 := charscreenstart + charrowsize*16
 message2 := charscreenstart + charrowsize*17
 menustart := charscreenstart + charrowsize*11
+facestart := charscreenstart + charrowsize*20+10
+facecolorstart := charcolorstart + charrowsize*20+10	
 bitmaprows = 8
 bitmapcols = 8
 bitmapcharstart := charscreenstart + charrowsize*2 + charrowsize/2 -bitmapcols/2
@@ -290,13 +292,13 @@ again:
     clc
     adc column
     tax
-    lda $1000,x
-    sta $1000+22,x
+    lda $0400,x
+    sta $0400+40,x
     dey
     bpl :-
     ldx column
     lda #32
-    sta $1000+51,x
+    sta $0400+51,x
    
 sm: lda #0 ; health
     beq :+
@@ -324,7 +326,7 @@ sm: lda #0 ; health
   txa
   sta sm1+2
   clc
-  adc #$84
+  adc #(charcolorstart-charscreenstart)/256
   sta sm2+2
 
   ldy #0
@@ -339,9 +341,9 @@ sm: lda #0 ; health
   ldy #0
   :
   pla
-sm1: sta $1000,y
+sm1: sta $0400,y
   lda textcolor
-sm2: sta $9400,y
+sm2: sta $d800,y
   iny
   cpy #3
   bne :-
@@ -360,7 +362,7 @@ sm2: sta $9400,y
   txa
   sta sm1+2
   clc
-  adc #$84
+  adc #(charcolorstart-charscreenstart)/256
   sta sm2+2
 
   ldy #0
@@ -373,9 +375,9 @@ sm2: sta $9400,y
   ldy #0
   :
   pla
-sm1: sta $1000,y
+sm1: sta $0400,y
   lda textcolor
-sm2: sta $9400,y
+sm2: sta $d800,y
   iny
   cpy #2
   bne :-
@@ -460,7 +462,8 @@ faceColor:
 faceChars:
 .byte 27,28,35,36,42,43
 faceOff:
-.byte $c2,$c3,$d8,$d9,$ee,$ef
+.byte 0,1,40,41,80,81
+;; .byte $c2,$c3,$d8,$d9,$ee,$ef	
 changeLookTime:
 .byte 7
 lookDir:
@@ -471,26 +474,20 @@ _colorFace:
   ; convert to yellow (7) or cyan (3)
   tay
   lda faceColor,y
-  pha
   ldx #5
   :
-  lda faceOff,x
-  tay
-  pla
-  sta $9500,y
-  pha
+  ldy faceOff,x
+  sta facecolorstart,y
   dex
   bpl :-
-  pla
   rts
 
 _drawFace:
   ldx #5
   :
-  lda faceOff,x
-  tay
+  ldy faceOff,x
   lda faceChars,x
-  sta $1100,y
+  sta facestart,y
   dex
   bpl :-
   rts
@@ -512,9 +509,9 @@ _updateFace:
   ldy #35
 drawFacePart:
   stx changeLookTime
-  sty $11d8
+  sty facestart+40
   iny
-  sty $11d9
+  sty facestart+41
   rts
 
 

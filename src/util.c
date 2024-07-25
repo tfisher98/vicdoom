@@ -31,8 +31,8 @@ void __fastcall__ load_full_text_screen(char *fname)
   int i, k, m, q;
   char x, c, d;
 
-  POKE(0x900f,8); //black border
-  POKE(198, 0);
+  //POKE(0x900f,8); //black border
+  //POKE(198, 0);
 
   // read in the text, then type it out
   load_data_file(fname);
@@ -41,9 +41,9 @@ void __fastcall__ load_full_text_screen(char *fname)
   clearScreen();
 
   k = 0xbe00;
-  i = 0x1000;
+  i = 0x0400;
   m = i;
-  q = 0x9400;
+  q = 0xd800;
   c = 2;
   d = 0;
   while (1)
@@ -53,9 +53,9 @@ void __fastcall__ load_full_text_screen(char *fname)
       
     if (x == '\n')
     {
-      i += 22;
+      i += 40;
       m = i;
-      q = m + 0x8400;
+      q = m + 0xd800;
     }
     else if (x == '^')
     {

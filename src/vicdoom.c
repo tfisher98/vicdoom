@@ -463,10 +463,10 @@ char flashBorderTime = 0;
 void __fastcall__ drawHudArmor(void)
 {
     char armorColor = 5 + combatArmor;
-    POKE(0x0400 + 22*21 + 13, 30); // armor symbol in font
-    POKE(0xd800 + 22*21 + 13, armorColor);
+    POKE(0x0400 + 40*21 + 13, 30); // armor symbol in font
+    POKE(0xd800 + 40*21 + 13, armorColor);
     setTextColor(armorColor);
-    print3DigitNumToScreen(armor, 0x1000 + 22*21 + 14);
+    print3DigitNumToScreen(armor, 0x0400 + 40*21 + 14);
 }
 
 char weaponSymbol[] = { 62, 61, 38, 31, 34 };
@@ -475,28 +475,28 @@ void __fastcall__ drawHudAmmo(void)
 {
   // weapon and ammo
   char sym = weaponSymbol[weapon];
-  POKE(0x0400 + 22*21 + 1, sym);
-  POKE(0xd800 + 22*21 + 1, 3);
+  POKE(0x0400 + 40*21 + 1, sym);
+  POKE(0xd800 + 40*21 + 1, 3);
   if (weapon < 2)
   {
-    POKE(0x0400 + 22*21 + 2, 32);
-    POKE(0x0400 + 22*21 + 3, 32);
-    POKE(0x0400 + 22*21 + 4, 32);
+    POKE(0x0400 + 40*21 + 2, 32);
+    POKE(0x0400 + 40*21 + 3, 32);
+    POKE(0x0400 + 40*21 + 4, 32);
   }
   else
   {
     setTextColor(3);
-    print2DigitNumToScreen(weapon == 3 ? shells : bullets, 0x1000 + 22*21 + 2);
+    print2DigitNumToScreen(weapon == 3 ? shells : bullets, 0x0400 + 40*21 + 2);
   }
 }
 
 void __fastcall__ drawHudHealth(void)
 {
   // health
-  POKE(0x0400 + 22*21 + 5, '/');
-  POKE(0xd800 + 22*21 + 5, 2);
+  POKE(0x0400 + 40*21 + 5, '/');
+  POKE(0xd800 + 40*21 + 5, 2);
   setTextColor(2);
-  print3DigitNumToScreen(health, 0x1000 + 22*21 + 6);
+  print3DigitNumToScreen(health, 0x0400 + 40*21 + 6);
 }
 
 char *keyCardNames[3] = { " red", "green", "blue" };
@@ -548,7 +548,7 @@ void __fastcall__ damagePlayer(char damage)
   
     // flash border red
     flashBorderTime = 1;
-    POKE(0x900F, 8+2);
+    // POKE(0x900F, 8+2);
   }
 }
 
@@ -697,7 +697,7 @@ void __fastcall__ drawObjectsInSector(char sectorIndex, signed char x_L, signed 
   numSorted = 0;
 
 #if DEBUG_SECTORLISTS
-  startSectorObjsPos += 22;
+  startSectorObjsPos += 40;
   print2DigitNumToScreen(sectorIndex, startSectorObjsPos);
 #endif
   
@@ -846,9 +846,9 @@ void __fastcall__ drawSpans(void)
 
 #if DEBUG_SECTORLISTS
   eraseMessage();
-  startSectorObjsPos = 0x1000 + 11*22;
-  print3DigitNumToScreen(getObjectX(47)>>8, 0x100A);
-  print3DigitNumToScreen(getObjectY(47)>>8, 0x100E);
+  startSectorObjsPos = 0x0400 + 11*40;
+  print3DigitNumToScreen(getObjectX(47)>>8, 0x040A);
+  print3DigitNumToScreen(getObjectY(47)>>8, 0x040E);
 #endif
 
   stackTop = 0;
@@ -913,7 +913,7 @@ void __fastcall__ drawSpans(void)
                }
                else
                {
-                 print2DigitNumToScreen(thatSector, 0x1000 + 5*22);
+                 print2DigitNumToScreen(thatSector, 0x0400 + 5*40);
                }
            }
         }
@@ -1447,7 +1447,7 @@ void updateBarrels(void)
 void preparePickupMessage(void)
 {
   playSound(SOUND_ITEMUP);
-  POKE(0x900F, 8 + 3); // cyan border
+  // POKE(0x900F, 8 + 3); // cyan border
   flashBorderTime = 1;
   eraseMessage();
   textcolor(7);
@@ -1812,7 +1812,7 @@ void __fastcall__ updateWeapons(char keys)
     if (damage != 0)
     {
       drawHudAmmo();
-      POKE(0x900F, 8+1);
+      // POKE(0x900F, 8+1);
 
       playSound(damageSounds[weapon]);
 
@@ -2027,7 +2027,7 @@ nextLevel:
       if (!flashBorderTime)
       {
          // note: XXXXYZZZ (X = screen, Y = reverse mode, Z = border)
-          POKE(0x900F, 8 + 5); // green border, and black screen
+         // POKE(0x900F, 8 + 5); // green border, and black screen
       }
       if (flashBorderTime > 0)
       {
