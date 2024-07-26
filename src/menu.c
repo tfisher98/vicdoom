@@ -107,8 +107,8 @@ void __fastcall__ drawMenu(char canReturn)
   char i;
   for (i = 0; i < 198; ++i)
   {
-    POKE(0x0400 + 242 + i, 32);
-    POKE(0xd800 + 242 + i, 7);
+    POKE(0x0400 + 11*40 + i, 32);
+    POKE(0xd800 + 11*40 + i, 7);
   }
 
   if (!canReturn)
