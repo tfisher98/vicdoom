@@ -3,6 +3,7 @@
 #include <string.h>
 #include <conio.h>
 
+#include "core_system.h"
 #include "util.h"
 #include "playSound.h"
 

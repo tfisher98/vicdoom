@@ -33,11 +33,11 @@
 
 #include "p_enemy.h"
 
+#include "core_math.h"
 #include "playSound.h"
 #include "player.h"
 #include "mapAsm.h"
 #include "util.h"
-#include "fastmath.h"
 #include "enemy.h"
 
 #pragma staticlocals(on)

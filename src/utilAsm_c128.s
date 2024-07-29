@@ -8,9 +8,7 @@
 .import _readInput
 .import _getControlKeys
 .export _eraseMessage
-.export _waitForRaster
 .export _meltScreen
-.export _load_file
 .export _setTextColor
 .export _print3DigitNumToScreen
 .export _print2DigitNumToScreen
@@ -30,9 +28,6 @@
 .export _objForMobj
 .export _mobjForObj
 
-.export _sqrt24
-.export _install_nmi_handler
-
 .autoimport on
 
 .segment "HICODE"
@@ -50,7 +45,6 @@ bitmapcols = 8
 bitmapcharstart := charscreenstart + charrowsize*2 + charrowsize/2 -bitmapcols/2
 bitmapcolorstart := charcolorstart + charrowsize*2 + charrowsize/2 -bitmapcols/2
 firstbitmapchar = 64
-vicraster := $d012	
 	
 _eraseMessage:
 
@@ -207,23 +201,6 @@ rts
 
 ;; rts
 
-.proc _waitForRaster: near
-
-  tay
-  @loop:
-    :
-    lda vicraster
-    cmp #16
-    bpl :-
-    :
-    lda vicraster
-    cmp #16
-    bmi :-
-    dey
-    bne @loop
-  rts
-
-.endproc
 
 intToAsc:
   ldy #$2f
@@ -243,20 +220,6 @@ textcolor:
 
 _setTextColor:
   sta textcolor
-  rts
-
-.segment "CODE"
-
-nmi_handler:
-  rti
-
-_install_nmi_handler:
-  sei
-  lda #<nmi_handler
-  sta $318
-  lda #>nmi_handler
-  sta $319
-  cli
   rts
 
 .segment "CODE"
@@ -386,32 +349,6 @@ sm2: sta $d800,y
 
 .endproc
 
-.segment "CODE"
-
-; params: filename, length of filename
-; A - length of fname
-; TOS - fname
-
-_load_file:
-  pha
-  ldy #0
-  lda (sp), y
-  tax           ; x contains low byte
-  iny
-  lda (sp), y
-  tay           ; y contains high byte
-  pla
-
-  jsr SETNAM ; $FFBD
-  lda #1
-  ldx #8      ; default to device 8
-  ldy #1      ; 1 means: load to address stored in file
-  jsr SETLFS ; $FFBA
-
-  lda #$00      ; $00 means: load to memory (not verify)
-  jsr LOAD ; $FFD5
-
-  jmp incsp2
 
 
 keyCard:
@@ -546,127 +483,3 @@ _mobjForObj:
   lda mobjForObj,x
   rts
 
-; these are zp addresses for ptr1-4 and tmp1-4
-xxxx = $a
-yyyy = $d
-mmmm = $10
-bbbb = $13
-
-_sqrt24:
-
-; x <- eax
-sta xxxx
-sta bbbb 			; first round b = x-(y|m) with y=0,m=0x100000
-stx xxxx+1
-stx bbbb+1	                ; first round b = x-(y|m) with y=0,m=0x100000
-lda sreg
-sta xxxx+2
-sec
-sbc #$10
-sta bbbb+2	                ; first round b = x-(y|m) with y=0,m=0x100000
-	
-; mmmm = 0x100000
-; yyyy = 0
-lda #0
-sta yyyy
-sta yyyy+1
-sta yyyy+2
-sta mmmm	
-sta mmmm+1
-lda #$10
-sta mmmm+2
-
-; for (i = 11; i != 0; --i)
-ldy #10				
-lda bbbb+2			; flags right for bmi @skipacc
-jmp @sqrtloopentry 		; first round init b,y above
-	
-@sqrtloop:
-
-; b = y | m
-lda yyyy
-ora mmmm
-sta bbbb
-lda yyyy+1
-ora mmmm+1
-sta bbbb+1
-lda yyyy+2
-ora mmmm+2
-sta bbbb+2
-
-; y >>= 1
-lsr yyyy+2
-ror yyyy+1
-ror yyyy
-
-; b = x - b
-sec
-lda xxxx
-sbc bbbb
-sta bbbb
-lda xxxx+1
-sbc bbbb+1
-sta bbbb+1
-lda xxxx+2
-sbc bbbb+2
-sta bbbb+2
-
-@sqrtloopentry:
-; if (b >= 0)
-bmi @skipacc
-
-; x = b
-lda bbbb
-sta xxxx
-lda bbbb+1
-sta xxxx+1
-lda bbbb+2
-sta xxxx+2
-
-; y |= m
-lda yyyy
-ora mmmm
-sta yyyy
-lda yyyy+1
-ora mmmm+1
-sta yyyy+1
-lda yyyy+2
-ora mmmm+2
-sta yyyy+2
-
-@skipacc:
-
-; m >>= 2
-lsr mmmm+2
-ror mmmm+1
-ror mmmm
-lsr mmmm+2
-ror mmmm+1
-ror mmmm
-
-dey
-bpl @sqrtloop
-
-; round
-; if (x > y)
-sec
-lda yyyy
-sbc xxxx
-lda yyyy+1
-sbc xxxx+1
-
-bpl @noround
-
-; ++y
-inc yyyy
-bne :+
-inc yyyy+1
-:
-
-@noround:
-
-; return y
-lda yyyy
-ldx yyyy+1
-
-rts

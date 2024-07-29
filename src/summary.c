@@ -3,6 +3,7 @@
 #include <string.h>
 #include <conio.h>
 
+#include "core_system.h"
 #include "updateInput.h"
 #include "playSound.h"
 
@@ -42,7 +43,7 @@ void __fastcall__ rollInPercentage(char pc, int scr)
     playSound(SOUND_PISTOL);
     if (PEEK(198) == 0)
     {
-		  waitForRaster(2);
+         waitForRaster(2);
     }
   }
   while (i < pc);
@@ -64,7 +65,7 @@ void __fastcall__ rollInTime(int t, int scr)
     playSound(SOUND_PISTOL);
     if (PEEK(198) == 0)
     {
-		  waitForRaster(2);
+	 waitForRaster(2);
     }
   }
   while (i < t);

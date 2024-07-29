@@ -62,6 +62,8 @@
 #include <dbg.h>
 #include <cbm.h>
 
+#include "core_math.h"
+#include "core_system.h"
 #include "updateInput.h"
 #include "playSound.h"
 #include "mapAsm.h"
@@ -71,7 +73,6 @@
 #include "util.h"
 #include "summary.h"
 #include "victory.h"
-#include "fastmath.h"
 #include "enemy.h"
 
 #pragma staticlocals(on)
