@@ -102,7 +102,6 @@ and #$80
 ora keys
 sta keys
 
-inc $d020
 rts
 
 .endproc

@@ -204,9 +204,8 @@ lda noteTable2,y
 dex
 bpl loop2
 
-end:
-inc $D020
-asl $D019	
+end:	
+asl $D019 			; ack vic interrupts
 jmp irqContinue
 
 nextEvent:
