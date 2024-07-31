@@ -4,6 +4,7 @@
 #include <conio.h>
 
 #include "core_system.h"
+#include "display_screen.h"
 #include "util.h"
 #include "playSound.h"
 

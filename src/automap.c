@@ -1,3 +1,4 @@
+#include "display_screen.h"
 #include "player.h"
 #include "mapAsm.h"
 #include "updateInput.h"

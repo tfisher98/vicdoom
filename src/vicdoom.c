@@ -64,6 +64,7 @@
 
 #include "core_math.h"
 #include "core_system.h"
+#include "display_screen.h"
 #include "updateInput.h"
 #include "playSound.h"
 #include "mapAsm.h"
