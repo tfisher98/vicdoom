@@ -20,9 +20,9 @@
 .export _mobjForObj
 
 .autoimport on
-	
-.segment "HICODE"
 
+.segment "CODE"
+	
 intToAsc:
   ldy #$2f
   ldx #$3a
@@ -36,7 +36,7 @@ intToAsc:
   adc #$2f
   rts
 
-.segment "CODE"
+.segment "HICODE"
 	
 keyCard:
 .byte 0
@@ -82,6 +82,8 @@ _haveKeyCard:
   and keyCard
   rts
 
+.segment "CODE"
+	
 objForMobj:
 .res 21,0
 mobjForObj:

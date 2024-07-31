@@ -31,6 +31,7 @@
 #include <stdlib.h>
 #include <conio.h>
 
+#include "display_screen.h"
 #include "p_enemy.h"
 
 #include "core_math.h"
@@ -153,7 +154,7 @@ char distanceFromPlayer;
 
 char newChaseDirThisFrame = 0;
 
-//#define PRINT_ACTION
+#define PRINT_ACTION
 
 #ifdef PRINT_ACTION
 void __fastcall__ printAction(void)
@@ -351,13 +352,13 @@ void __fastcall__ p_enemy_single_think(char mobjIndex)
 #ifdef PRINT_ACTION
   printAction();
 #endif
-#if 0
-  print3DigitNumToScreen(distanceFromPlayer, 0x1000 + 22*3);
-  print3DigitNumToScreen(mobjIndex, 0x1000 + 22*4);
-  print3DigitNumToScreen(objIndex, 0x1000 + 22*5);
-  print3DigitNumToScreen(getObjectSector(objIndex), 0x1000 + 22*6);
-  print3DigitNumToScreen(mobjStateIndex(), 0x1000 + 22*7);
-  print3DigitNumToScreen(actionIndex, 0x1000 + 22*8);
+#if 1
+  print3DigitNumToScreen(distanceFromPlayer, 0x0400 + 40*3);
+  print3DigitNumToScreen(mobjIndex, 0x0400 + 40*4);
+  print3DigitNumToScreen(objIndex, 0x0400 + 40*5);
+  print3DigitNumToScreen(getObjectSector(objIndex), 0x0400 + 40*6);
+  print3DigitNumToScreen(mobjStateIndex(), 0x0400 + 40*7);
+  print3DigitNumToScreen(actionIndex, 0x0400 + 40*8);
 #endif
   actions[actionIndex]();
 }
