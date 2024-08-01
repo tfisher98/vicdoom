@@ -13,3 +13,7 @@ void __fastcall__ printCentered(char *str, char y);
 void __fastcall__ colorFace(char godMode);
 void drawFace(void);
 void updateFace(void);
+
+void __fastcall__ drawHudArmor(void);
+void __fastcall__ drawHudAmmo(void);
+void __fastcall__ drawHudHealth(void);

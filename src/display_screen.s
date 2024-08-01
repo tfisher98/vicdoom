@@ -19,7 +19,7 @@
 	
 .autoimport on
 
-.segment "HICODE"
+.segment "CODE"
 
 charrowsize = 40
 charscreenstart := $0400
@@ -55,6 +55,8 @@ xxx:
 charColor:
 .byte 0
 
+.segment "HICODE"
+
 _clearScreen:
 
 ldy #0
@@ -62,7 +64,7 @@ ldy #0
   lda #32
   sta charscreenstart+0,y ; clear screen
   sta charscreenstart+$100,y
-  sta charscreenstart+$200,y ; clear screen
+  sta charscreenstart+$200,y 
   sta charscreenstart+$300,y
   lda #2
   sta charcolorstart,y
@@ -132,6 +134,7 @@ bne outerloop
 
 rts
 
+.segment "LOWCODE2"
 _clearMenuArea:
 
 lda #32
@@ -197,7 +200,7 @@ _setTextColor:
   sta textcolor
   rts
 
-.segment "CODE"
+.segment "HICODE"
 x22p7:
 .byte 51, 73, 95, 117, 139, 161, 183
 meltCount:
@@ -253,7 +256,7 @@ sm: lda #0 ; health
 .endproc
 
 
-.segment "CODE"
+.segment "LOWCODE2"
 .proc _print3DigitNumToScreen: near
   ; AX pos
   ; TOS num (char)

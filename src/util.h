@@ -1,8 +1,6 @@
 #define POKE(addr,val) ((*(unsigned char *)(addr)) = val)
 #define PEEK(addr) (*(unsigned char *)(addr))
 
-void __fastcall__ playMusic(char *name);
-
 char __fastcall__ keyCardColor(char card);
 void __fastcall__ resetKeyCard(void);
 void __fastcall__ addKeyCard(char cardMask);

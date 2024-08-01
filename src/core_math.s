@@ -152,65 +152,64 @@ skip:	tya
 ;      v = e*256 + log2[x&255];
 
 ;;;  original version : average 60 cycles
-;; .proc log2:near
+.proc log2:near
 
-;; sta tmple
-;; txa
-;; bne startshiftdown
-;; ldx #0
-;; shiftup:
-;; dex
-;; asl tmple
-;; rol
-;; beq shiftup
-;; bne finishedshifting
-;; startshiftdown:
-;; ldx #0
-;; shiftdown:
-;; lsr
-;; beq finishedshifting
-;; ror tmple
-;; inx
-;; jmp shiftdown
-;; finishedshifting:
-;; ldy tmple
-;; lda log2tab,y
-;; rts
-
-;; .endproc
+sta tmple
+txa
+bne startshiftdown
+ldx #0
+shiftup:
+dex
+asl tmple
+rol
+beq shiftup
+bne finishedshifting
+startshiftdown:
+ldx #0
+shiftdown:
+lsr
+beq finishedshifting
+ror tmple
+inx
+jmp shiftdown
+finishedshifting:
+ldy tmple
+lda log2tab,y
+rts
+.endproc
 
 ;;;  optimized version : average 50 cycles
 ;; code structure chosen so all branches taken <50% of time in practice
-.proc log2:near
-	sta tmple
-	txa
-	beq shiftup
-	ldx #0
-shiftdown:
-	lsr
-	beq finishedshifting
-	ror tmple
-	inx
-	lsr
-	beq finishedshifting
-	ror tmple
-	inx
-	bne shiftdown 		; always taken
-shiftup2: 			
-	dex
-	asl tmple
-	rol
-	bne finishedshifting
-shiftup:
-	dex
-	asl tmple
-	rol
-	beq shiftup2
-finishedshifting:
-	ldy tmple
-	lda log2tab,y
-	rts
-.endproc
+;; .proc log2:near
+;; 	sta tmple
+;; 	txa
+;; 	beq shiftup
+;; 	ldx #0
+;; shiftdown:
+;; 	lsr
+;; 	beq finishedshifting
+;; 	ror tmple
+;; 	inx
+;; 	lsr
+;; 	beq finishedshifting
+;; 	ror tmple
+;; 	inx
+;; 	bne shiftdown 		; always taken
+;; shiftup2: 			
+;; 	dex
+;; 	asl tmple
+;; 	rol
+;; 	bne finishedshifting
+;; shiftup:
+;; 	dex
+;; 	asl tmple
+;; 	rol
+;; 	beq shiftup2
+;; finishedshifting:
+;; 	ldy tmple
+;; 	lda log2tab,y
+;; 	rts
+;; .endproc
 	
 ; ---------------------------------------------------------------
 ; unsigned int __near__ __fastcall__ exp2 (unsigned int x)

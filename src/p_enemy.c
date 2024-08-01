@@ -353,12 +353,12 @@ void __fastcall__ p_enemy_single_think(char mobjIndex)
   printAction();
 #endif
 #if 1
-  print3DigitNumToScreen(distanceFromPlayer, 0x0400 + 40*3);
-  print3DigitNumToScreen(mobjIndex, 0x0400 + 40*4);
-  print3DigitNumToScreen(objIndex, 0x0400 + 40*5);
-  print3DigitNumToScreen(getObjectSector(objIndex), 0x0400 + 40*6);
-  print3DigitNumToScreen(mobjStateIndex(), 0x0400 + 40*7);
-  print3DigitNumToScreen(actionIndex, 0x0400 + 40*8);
+  print3DigitNumToScreen(distanceFromPlayer, 0x0400 + 40*3 +5);
+  print3DigitNumToScreen(mobjIndex, 0x0400 + 40*4 +5);
+  print3DigitNumToScreen(objIndex, 0x0400 + 40*5 +5);
+  print3DigitNumToScreen(getObjectSector(objIndex), 0x0400 + 40*6 +5);
+  print3DigitNumToScreen(mobjStateIndex(), 0x0400 + 40*7 +5);
+  print3DigitNumToScreen(actionIndex, 0x0400 + 40*8 +5);
 #endif
   actions[actionIndex]();
 }

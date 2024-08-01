@@ -462,45 +462,6 @@ void __fastcall__ drawObjectInSector(char objIndex, signed char x_L, signed char
 
 char flashBorderTime = 0;
 
-void __fastcall__ drawHudArmor(void)
-{
-    char armorColor = 5 + combatArmor;
-    POKE(0x0400 + 40*21 + 13, 30); // armor symbol in font
-    POKE(0xd800 + 40*21 + 13, armorColor);
-    setTextColor(armorColor);
-    print3DigitNumToScreen(armor, 0x0400 + 40*21 + 14);
-}
-
-char weaponSymbol[] = { 62, 61, 38, 31, 34 };
-
-void __fastcall__ drawHudAmmo(void)
-{
-  // weapon and ammo
-  char sym = weaponSymbol[weapon];
-  POKE(0x0400 + 40*21 + 1, sym);
-  POKE(0xd800 + 40*21 + 1, 3);
-  if (weapon < 2)
-  {
-    POKE(0x0400 + 40*21 + 2, 32);
-    POKE(0x0400 + 40*21 + 3, 32);
-    POKE(0x0400 + 40*21 + 4, 32);
-  }
-  else
-  {
-    setTextColor(3);
-    print2DigitNumToScreen(weapon == 3 ? shells : bullets, 0x0400 + 40*21 + 2);
-  }
-}
-
-void __fastcall__ drawHudHealth(void)
-{
-  // health
-  POKE(0x0400 + 40*21 + 5, '/');
-  POKE(0xd800 + 40*21 + 5, 2);
-  setTextColor(2);
-  print3DigitNumToScreen(health, 0x0400 + 40*21 + 6);
-}
-
 char *keyCardNames[3] = { " red", "green", "blue" };
 
 extern char difficulty;
@@ -550,7 +511,7 @@ void __fastcall__ damagePlayer(char damage)
   
     // flash border red
     flashBorderTime = 1;
-    // POKE(0x900F, 8+2);
+    bordercolor(COLOR_RED);
   }
 }
 
@@ -1018,12 +979,6 @@ char totalCheckedEdges;
 #define OUTERCOLLISIONRADIUS 528
 #define COLLISIONDELTA (OUTERCOLLISIONRADIUS - INNERCOLLISIONRADIUS)
 
-void breakpoint(void)
-{
-  // completely free of side effects :)
-  POKE(0x9700, 1);
-}
-
 EPushOutResult __fastcall__ push_out_from_edge(char i)
 {
   ++totalCheckedEdges;
@@ -1355,14 +1310,13 @@ void push_out(void)
     }
   }
 
-//  print3DigitNumToScreen(playerSector, 0x1000 + 66);
-//  print3DigitNumToScreen(totalCheckedEdges, 0x1000 + 88);
-//  print3DigitNumToScreen(numSectorsToCheck, 0x1000 + 110);
-//  print3DigitNumToScreen(numWallsToCheck, 0x1000 + 132);
-//  print3DigitNumToScreen(numPushedOutFrom, 0x1000 + 155);
-//  print3DigitNumToScreen(numCrossablesToCheck, 0x1000 + 176);
+  print3DigitNumToScreen(playerSector, 0x0400 + 40*3);
+  print3DigitNumToScreen(totalCheckedEdges, 0x0400 + 40*4);
+  print3DigitNumToScreen(numSectorsToCheck, 0x0400 + 40*5);
+  print3DigitNumToScreen(numWallsToCheck, 0x0400 + 40*6);
+  print3DigitNumToScreen(numPushedOutFrom, 0x0400 + 40*7 +1);
+  print3DigitNumToScreen(numCrossablesToCheck, 0x0400 + 40*8);
 }
-
 
 signed char explodingBarrelsObject[4];
 char explodingBarrelsTime[4];
@@ -1449,7 +1403,7 @@ void updateBarrels(void)
 void preparePickupMessage(void)
 {
   playSound(SOUND_ITEMUP);
-  // POKE(0x900F, 8 + 3); // cyan border
+  bordercolor(COLOR_CYAN);
   flashBorderTime = 1;
   eraseMessage();
   textcolor(7);
@@ -1681,9 +1635,10 @@ void handleCheatCodes(void)
       endLevel = 1;
       do
       {
-        POKE(198, 0);
-        while (PEEK(198) == 0) ;
-        level = PEEK(631) - 48;
+	// TODO : wait for key and read it
+	//        POKE(198, 0);
+        // while (PEEK(198) == 0) ;
+        // level = PEEK(631) - 48;
       }
       while (level > 8);
       clev = 1;
@@ -1845,6 +1800,8 @@ void __fastcall__ updateWeapons(char keys)
   }
 
   // change weapon
+  // TODO : check for keypress, decode number key as weapon switch
+ #if 0
   if (PEEK(198) > 0)
   {
     char w = PEEK(631) - 49;
@@ -1872,6 +1829,7 @@ void __fastcall__ updateWeapons(char keys)
       }
     }
   }
+#endif
 }
 
 int main()
@@ -1907,12 +1865,20 @@ int main()
   load_data_file("pstackcode");
   
   playSoundInitialize(); // takes over IRQ so now its our IRQ not kernal
+  
+  generateMulTab();
+  load_data_file("psluts");
+  load_data_file("ptextures");
 
   POKE(0xd018,25); // unshadowed : charset at $2000, screen at $0400
   POKE(0xd016,0x18); // MC mode
   POKE(0xd022,COLOR_YELLOW);
   POKE(0xd023,COLOR_ORANGE);
-
+  
+start:
+  playMusic("pe1m9mus");
+  bordercolor(COLOR_BLUE);
+  
   // processor port 1 :
   // bit 0 : cpu color bank
   // bit 1 : vic color bank
@@ -1921,28 +1887,8 @@ int main()
   // bit 6 : capslock
   POKE(0x01,4); // VIC, CPU both use color bank 0, custom characters 
 
-  bordercolor(COLOR_YELLOW);
-  
-  generateMulTab();
-  load_data_file("psluts");
-  load_data_file("ptextures");
-
-start:
-  playMusic("pe1m9mus");
-  bordercolor(COLOR_BLUE);
-
-  //POKE(0x900E, (6<<4) | (PEEK(0x900E)&0x0f)); // blue aux color
-  
-  // set the character set to $1400
-  //POKE(0x9005, 13 | (PEEK(0x9005)&0xf0));
-
   setUpScreenForBitmap();
-
-  bordercolor(COLOR_CYAN);
-
   setUpScreenForMenu();
-
-  bordercolor(COLOR_GREEN);
   
   runMenu(0);
   level = 1;
@@ -1951,7 +1897,7 @@ start:
 
 nextLevel:
 
-  //POKE(0x900F, 8 + 5); // green border, and black screen
+  bordercolor(COLOR_GREEN);
   clearScreen();
 
   {
@@ -2028,8 +1974,7 @@ nextLevel:
   {
       if (!flashBorderTime)
       {
-         // note: XXXXYZZZ (X = screen, Y = reverse mode, Z = border)
-         // POKE(0x900F, 8 + 5); // green border, and black screen
+	  bordercolor(COLOR_GREEN);
       }
       if (flashBorderTime > 0)
       {
@@ -2108,7 +2053,9 @@ nextLevel:
         {
           playerx += (sa<<1);
           playery += (ca<<1);
-        }
+        } else {
+          cputsxy(1, 14, "nope");
+	}
       }
       if (keys & KEY_BACK)
       {
@@ -2156,11 +2103,11 @@ nextLevel:
                   playSound(SOUND_OOF);
                   eraseMessage();
                   textcolor(7);
-                  cputsxy(1, 14, "you need a       key");
-                  cputsxy(2, 15, "to open this door!");
+                  cputsxy(1, 16, "you need a       key");
+                  cputsxy(2, 17, "to open this door!");
                   textcolor(keyCardColor(prop));
                   --prop;
-                  cputsxy(12, 14, keyCardNames[prop]);
+                  cputsxy(12, 16, keyCardNames[prop]);
                   eraseMessageAfter = 8;
                 }
               }
