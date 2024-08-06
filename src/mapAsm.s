@@ -78,6 +78,9 @@
 
 .segment "CODE"
 
+doorStatus:
+.res 200,0
+	
 objXlo:
 .res 48, 0
 
@@ -760,7 +763,7 @@ beq :+
 dex
 :
 txa
-sta $9600,y
+sta doorStatus,y
 iny
 cpy #200
 bne resetDoorsLoop
@@ -782,20 +785,20 @@ rts
 
 _isDoorClosed:
 tay
-lda $9600,y
+lda doorStatus,y
 and #$0f
 rts
 
 _basicOpenDoor:
 tay
 lda #0
-sta $9600,y
+sta doorStatus,y
 rts
 
 _basicCloseDoor:
 tay
 lda #1
-sta $9600,y
+sta doorStatus,y
 rts
 
 
