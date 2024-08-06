@@ -14,8 +14,11 @@
 ;    ----K--- <<3
 ;=
 ; SADWJLIK
-
-; 
+;
+; <ctr>  -   -  -  -  -  -   -     >>1
+; <esc>  -   -  -  -  -  - <ret>
+;= 
+; <esc><ctr> -  -  -  -  - <ret>  
 
 ; sometime soon I'm going to have to make a zero page map!
 ;  put this on the zero page to speed up the interrupt
@@ -38,16 +41,15 @@ bne read
 rts
 
 read:
-
-dec $d020
 	
 lda #3
 sta framesToNextUpdate
 sta somethingToRead
 
 	;; direction registers : 1 is read/write
-	lda #$ff
+	lda #$00
 	sta $dc02
+	lda #$ff
 	sta $dc03
 	
 ; query the keyboard line containing (VIC) <Ctrl>ADGJL;<Right>
@@ -61,13 +63,13 @@ and #$36 ; get ADJL
 ora keys
 sta keys
 txa
-asl
-and #2 			
+lsr
+and #$40 				; ctrl is #$80; shifted right to bit 6
 ora ctrlKeys
 sta ctrlKeys
 
 ; query the keyboard line containing (VIC) <Left>WRYIP*<Ret>
-; query the keyboard line containing (c128) <Ret>WRYIP*<Left>  
+; query the keyboard line containing (c128) <Ret>WRYIP*<ESC>  
 lda #$fd
 sta $dc01
 lda $dc00
@@ -79,7 +81,7 @@ and #$48 ; get WI
 ora keys
 sta keys
 txa
-and #$81
+and #$81			; <ESC> bit 7; <Ret> bit 1
 ora ctrlKeys
 sta ctrlKeys
 
@@ -91,14 +93,14 @@ lda $dc00
 eor #$ff
 tax
 lsr
-and #$01
+and #$01			; get S in low bit
 ora keys
 sta keys
 txa
 asl
 asl
 asl
-and #$80
+and #$80			; get K in high bit
 ora keys
 sta keys
 
