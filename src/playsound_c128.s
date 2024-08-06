@@ -82,7 +82,6 @@ tempVol:
 .byte 0
 
 .proc playSoundIrq : near
-inc $d020
 
 ; check this came from timer 1
 ;; bit $912d
