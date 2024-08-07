@@ -281,7 +281,8 @@ void __fastcall__ drawWall(char sectorIndex, char curEdgeIndex, char nextEdgeInd
           // Ys = Yw * (Ds/Dw) ; Ys = screenY, Yw = worldY, Ds = dist to screen, Dw = dist to point
           // h = (SCREENHEIGHT/16)*512/(curY/16);
 
-          h = div88(128, curY);
+          //h = div88(128, curY);
+	  h = div128over(curY);
                
           if (type == EDGE_TYPE_JAMB)
           {
@@ -367,7 +368,8 @@ void __fastcall__ drawObjectInSector(char objIndex, signed char x_L, signed char
   // perspective transform (see elsewhere for optimization)
   //int h = (SCREENHEIGHT/16) * 512 / (vy/16);
   int vy = objY[objIndex];
-  unsigned int h = div88(128, vy);
+  //unsigned int h = div88(128, vy);
+  unsigned int h = div128over(vy);
   unsigned char hc;
 
   char o = objO[objIndex];
@@ -545,7 +547,8 @@ void __fastcall__ drawTransparentObject(char transIndex)
   // perspective transform (see elsewhere for optimization)
   //int h = (SCREENHEIGHT/16) * 512 / (vy/16);
   int vy = transY[transIndex];
-  unsigned int h = div88(128, vy);
+  //unsigned int h = div88(128, vy);
+  unsigned int h = div128over(vy);
   unsigned char hc;
   char o = transO[transIndex];
   char objectType = getObjectType(o);
@@ -2053,9 +2056,7 @@ nextLevel:
         {
           playerx += (sa<<1);
           playery += (ca<<1);
-        } else {
-          cputsxy(1, 14, "nope");
-	}
+        } 
       }
       if (keys & KEY_BACK)
       {
@@ -2130,9 +2131,9 @@ nextLevel:
       updateAcid();
 
       {
-        //setTickCount();
+        setTickCount();
         push_out();
-        //print2DigitNumToScreen(getTickCount(), 0x1000);
+        print2DigitNumToScreen(getTickCount(), 0x0424);
       }
 
       setSectorVisited(playerSector);
