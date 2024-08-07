@@ -1,4 +1,5 @@
 unsigned int __fastcall__ div88(unsigned int x, unsigned int y);
+unsigned int __fastcall__ div128over(unsigned int y);
 int __fastcall__ transformxy(int x, int y);
 int __fastcall__ transformx(void);
 int __fastcall__ leftShift4ThenDiv(int p, unsigned int q);

@@ -3,6 +3,7 @@
 .export log2
 .export exp2
 .export _div88
+.export _div128over	
 .export _transformxy
 .export _transformx
 .export _leftShift4ThenDiv
@@ -108,19 +109,6 @@ cameraY = $59
 	tax
  	tya
 .endmacro
-
-;; .macro add_to_stack val
-;; .local skip
-;;   ldy #val
-;;   pha
-;;  	clc
-;;  	tya
-;;  	adc	sp
-;;  	sta	sp
-;;  	bcc	skip
-;;  	inc	sp+1
-;; skip:	pla
-;; .endmacro
 	
 .macro add_to_stack val
 .local skip
@@ -151,65 +139,38 @@ skip:	tya
 ;      }
 ;      v = e*256 + log2[x&255];
 
-;;;  original version : average 60 cycles
-.proc log2:near
-
-sta tmple
-txa
-bne startshiftdown
-ldx #0
-shiftup:
-dex
-asl tmple
-rol
-beq shiftup
-bne finishedshifting
-startshiftdown:
-ldx #0
-shiftdown:
-lsr
-beq finishedshifting
-ror tmple
-inx
-jmp shiftdown
-finishedshifting:
-ldy tmple
-lda log2tab,y
-rts
-.endproc
-
-;;;  optimized version : average 50 cycles
-;; code structure chosen so all branches taken <50% of time in practice
-;; .proc log2:near
-;; 	sta tmple
-;; 	txa
-;; 	beq shiftup
-;; 	ldx #0
-;; shiftdown:
-;; 	lsr
-;; 	beq finishedshifting
-;; 	ror tmple
-;; 	inx
-;; 	lsr
-;; 	beq finishedshifting
-;; 	ror tmple
-;; 	inx
-;; 	bne shiftdown 		; always taken
-;; shiftup2: 			
-;; 	dex
-;; 	asl tmple
-;; 	rol
-;; 	bne finishedshifting
-;; shiftup:
-;; 	dex
-;; 	asl tmple
-;; 	rol
-;; 	beq shiftup2
-;; finishedshifting:
-;; 	ldy tmple
-;; 	lda log2tab,y
-;; 	rts
-;; .endproc
+;;;  optimized version : average 55 cycles
+;;;  code structure chosen based on branch frequency 
+ .proc log2:near
+ 	sta tmple
+ 	txa
+ 	beq shiftup
+ 	ldx #0
+ shiftdown:
+ 	lsr
+ 	beq finishedshifting
+ 	ror tmple
+ 	inx
+ 	lsr
+ 	beq finishedshifting
+ 	ror tmple
+ 	inx
+ 	bne shiftdown 		; always taken
+ shiftup2: 			
+ 	dex
+ 	asl tmple
+ 	rol
+ 	bne finishedshifting
+ shiftup:
+ 	dex
+ 	asl tmple
+ 	rol
+ 	beq shiftup2
+ finishedshifting:
+ 	ldy tmple
+ 	lda log2tab,y
+ 	rts
+ .endproc
 	
 ; ---------------------------------------------------------------
 ; unsigned int __near__ __fastcall__ exp2 (unsigned int x)
@@ -295,7 +256,6 @@ done:
 ; ---------------------------------------------------------------
 
 .proc _div88:near
-
 jsr log2
 sta tmp+2
 stx tmp+3
@@ -309,12 +269,29 @@ sbc tmp+3
 tax
 tya
 jsr exp2
-
 add_to_stack 2
 rts
-	
 .endproc
 
+;;; same as div88(128,x.a)
+;;; log2(128) = ff.00
+;;; compute exp2(ff.00-log2(x.a))  ; let rx.ra = log2(x.a)
+;;;   = exp2( ff.00 + rx^ff.ra^ff + 00.01 )
+;;;   = exp2( rx^ff.ra^ff + ff.01 )
+.proc _div128over:near
+	jsr log2
+	eor #$ff
+	clc
+	adc #$01
+	tay
+	txa
+	eor #$ff
+	adc #$ff
+	tax
+	tya
+	jmp exp2
+.endproc
+	
 ; ---------------------------------------------------------------
 ; int __near__ __fastcall__ _transformxy(void)
 ; int __near__ __fastcall__ _transformy(void)
