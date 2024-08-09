@@ -215,112 +215,62 @@ void __fastcall__ drawWall(char sectorIndex, char curEdgeIndex, char nextEdgeInd
   char prop = textureIndex & EDGE_PROP_MASK;
   char edgeLen = getEdgeLen(edgeGlobalIndex);
 
-  // intersect the view direction and the edge
-  // http://local.wasp.uwa.edu.au/~pbourke/geometry/lineline2d/
-  int x1 = getTransformedX(curEdgeIndex);
-  int y1 = getTransformedY(curEdgeIndex);
-  int dx = getTransformedX(nextEdgeIndex) - x1;
-  int dy = getTransformedY(nextEdgeIndex) - y1;
+  int x1 = getTransformedX(curEdgeIndex),       y1 = getTransformedY(curEdgeIndex);
+  int dx = getTransformedX(nextEdgeIndex) - x1, dy = getTransformedY(nextEdgeIndex) - y1;
 
-  //int x3 = 0;
-  //int y3 = 0;
-  //int y4 = 256*1;
-
-  signed char x4;
-  int denom;
-  signed char curX;
-  int numer;
-  unsigned int t;
-  unsigned int texI;
-  unsigned int curY;
-  unsigned int h;
+  signed char x4, curX;
+  int numer, denom;
+  unsigned int t, texI, curY, h;
   char fit;
-  char transp;
 
   automap_sawEdge(edgeGlobalIndex);
 
   textureIndex &= EDGE_TEX_MASK;
-  // techwall, switch, door
-  fit = (textureIndex == 2 || textureIndex == 5 || textureIndex == 6);
-  transp = (textureIndex == 4);
-  
-  // add 128 to correct for sampling in the center of the column
-  //x4 = (256*x_L + 128)/HALFSCREENWIDTH;
-  //TWF assumes HALFSCREENWIDTH=16 so x4 = 16*x_L + 8 = (2*x_L + 1)*8 with the *8 happening below 
-  x4 = 2*x_L + 1; // need to multiply by 8 later
-  for (curX = x_L; curX < x_R; ++curX)
-  {
-    //x4 = (256*curX + 128)/HALFSCREENWIDTH;
-    x4 += 2;
-    if (testFilled(curX) == 0x7f)
-    {
-      // denom = dx - x4 * dy / 256;
-      fastMultiplySetup16x8(x4);
-      denom = dx - (fastMultiply16x8(dy)<<3); // here's the x8
-      if (denom > 0)
-      {
-        // numer = x4 * ((long)y1) / 256 - x1;
-        numer = (fastMultiply16x8(y1)<<3) - x1; // and x8 here
-        //           if (numer > 0)
-        {
-          // t = 256 * numer / denom;
-          t = div88(numer, denom);
-        }
-        //           else
-        {
-        //              t = 0;
-        }
-        if (t > 255) t = 255;
-        // curY = y1 + t * dy / 256;
-        fastMultiplySetup16x8(t>>1);
-        curY = (fastMultiply16x8(dy)<<1) + y1;
-        setFilled(curX, curY);
-        if (curY > 0)
-        {
-          // perspective transform
-          // Ys = Yw * (Ds/Dw) ; Ys = screenY, Yw = worldY, Ds = dist to screen, Dw = dist to point
-          // h = (SCREENHEIGHT/16)*512/(curY/16);
+  fit = (textureIndex == 2 || textureIndex == 5 || textureIndex == 6); // techwall, switch, door
+  if (type == EDGE_TYPE_JAMB) {
+    texI = prop >> EDGE_PROP_SHIFT;
+    textureIndex = 7;
+  }
 
-          //h = div88(128, curY);
-	  h = div128over(curY);
-               
-          if (type == EDGE_TYPE_JAMB)
-          {
-            texI = prop >> EDGE_PROP_SHIFT;
-            textureIndex = 7;
-          }
-          else if (!fit)
-          {
-            //texI = (t * edgeLen) >> 6; // 256/PIXELSPERMETER
-            fastMultiplySetup8x8(t>>1);
-            texI = fastMultiply8x8(edgeLen)>>5;
-            texI &= 15; // 16 texel wide texture
-          }
-          else
-          {
-            // switch, door or techwall, so fit to wall
-            texI = t >> 4;
-          }
-               
-          if (curX == 0)
-          {
-            if (type == EDGE_TYPE_DOOR)
-            {
-              typeAtCenterOfView = TYPE_DOOR;
-              itemAtCenterOfView = edgeGlobalIndex;
-            }
-            else if (type == EDGE_TYPE_SWITCH)
-            {
-              typeAtCenterOfView = TYPE_SWITCH;
-              itemAtCenterOfView = edgeGlobalIndex;
-            }
-          }
-
-          drawColumn(textureIndex, texI, curX, curY, h);
-        }
-      }
+  if ((x_L <= 0) && (x_R > 0) && testFilled(0) == 0x7f) {
+    if (type == EDGE_TYPE_DOOR) {
+      typeAtCenterOfView = TYPE_DOOR;
+      itemAtCenterOfView = edgeGlobalIndex;
+    } else if (type == EDGE_TYPE_SWITCH) {
+      typeAtCenterOfView = TYPE_SWITCH;
+      itemAtCenterOfView = edgeGlobalIndex;
     }
   }
+  
+  for (curX = x_L, x4 = 2*x_L+3; curX < x_R; ++curX, x4 += 2) {
+      if (testFilled(curX) != 0x7f) continue;    
+
+      fastMultiplySetup16x8(x4);
+      denom = dx - (fastMultiply16x8(dy)<<3);
+      if (denom <= 0) continue;
+
+      numer = (fastMultiply16x8(y1)<<3) - x1; 
+      t = div88(numer, denom);
+      if (t > 255) t = 255;
+
+      fastMultiplySetup16x8(t>>1);
+      curY = (fastMultiply16x8(dy)<<1) + y1;
+      setFilled(curX, curY);
+      if (curY <= 0) continue;
+
+      h = div128over(curY);
+               
+      if (type != EDGE_TYPE_JAMB) {
+	if (fit) { 
+	  texI = t >> 4;
+	} else {
+	  fastMultiplySetup8x8(t>>1);
+	  texI = (fastMultiply8x8(edgeLen)>>5) & 15;
+	}
+      }
+
+      drawColumn(textureIndex, texI, curX, curY, h);      
+   }
 }
 
 signed char __fastcall__ drawDoor(char sectorIndex, char curEdgeIndex, char nextEdgeIndex, signed char x_L, signed char x_R)
