@@ -25,6 +25,7 @@
 
 .export _resetDoorClosedAmounts
 .export _isEdgeDoor
+.export _isEdgeSwitch
 .export _isDoorClosed
 .export _basicOpenDoor
 .export _basicCloseDoor
@@ -773,14 +774,26 @@ _isEdgeDoor:
 tay
 ldx #0
 lda edgeTex,y
-and #$C0
-cmp #$40
+and #$C0 			; EDGE_TYPE_MASK
+cmp #$40			; EDGE_TYPE_DOOR
 bne :+
 inx
 :
 txa
 rts
 
+_isEdgeSwitch:
+tay
+ldx #0
+lda edgeTex,y
+and #$C0 			; EDGE_TYPE_MASK
+cmp #$C0			; EDGE_TYPE_SWITCH
+bne :+
+inx
+:
+txa
+rts
+	
 .import _fastMulTest
 
 _isDoorClosed:

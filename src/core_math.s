@@ -98,6 +98,11 @@ cameraY = $59
 	lda (sp),y
 .endmacro
 
+.macro add_to_stack_2  	        ; assume STACKSIZE < 255 : stack on one page
+	inc sp
+	inc sp
+.endmacro
+	
 .macro negate_ax
 	clc
  	eor	#$FF
@@ -110,17 +115,6 @@ cameraY = $59
  	tya
 .endmacro
 	
-.macro add_to_stack val
-.local skip
-	tay
- 	clc
- 	lda     #val
- 	adc	sp
- 	sta	sp
- 	bcc	skip
- 	inc	sp+1
-skip:	tya
-.endmacro
 
 ; ---------------------------------------------------------------
 ; unsigned int __near__ __fastcall__ log2 (unsigned int x)
@@ -189,36 +183,6 @@ skip:	tya
 ;         i /= 2;
 ;         e++;
 ;      }
-
-;;; original version : average 68 cycles
-;; .proc exp2:near
-;; tay
-;; lda #1
-;; sta tmple
-;; lda exp2tab,y
-;; cpx #0
-;; beq done
-;; bmi shiftdown
-;; bpl shiftup
-;; done:
-;; ldx #1
-;; rts
-;; shiftup:
-;; asl
-;; rol tmple
-;; dex
-;; bne shiftup
-;; ldx tmple
-;; rts
-;; shiftdown:
-;; lsr tmple
-;; ror
-;; inx
-;; bne shiftdown
-;; ldx tmple
-;; rts
-;; .endproc
-
 ;;; optimized : average 67 cycles? should be ~3 less than original
 .proc exp2:near
 	tay
@@ -246,8 +210,7 @@ maybeshiftup:
 	bne shiftup
 done:	
 	ldx tmple
-	rts
-	
+	rts	
 .endproc
 
 	
@@ -256,21 +219,20 @@ done:
 ; ---------------------------------------------------------------
 
 .proc _div88:near
-jsr log2
-sta tmp+2
-stx tmp+3
-loadaxfromstack 1
-jsr log2
-sec
-sbc tmp+2
-tay
-txa
-sbc tmp+3
-tax
-tya
-jsr exp2
-add_to_stack 2
-rts
+	jsr log2
+	sta tmp+2
+	stx tmp+3
+	loadaxfromstack 1
+	add_to_stack_2
+	jsr log2
+	sec
+	sbc tmp+2
+	tay
+	txa
+	sbc tmp+3
+	tax
+	tya
+	jmp exp2
 .endproc
 
 ;;; same as div88(128,x.a)
@@ -428,7 +390,7 @@ bpl pwaspos
 negate_ax
 
 pwaspos:
-add_to_stack 2
+add_to_stack_2
 rts
 
 .endproc
@@ -486,7 +448,7 @@ jsr exp2
 
 and #15
 
-add_to_stack 2
+add_to_stack_2
 rts
 
 .endproc
@@ -592,33 +554,32 @@ PRODUCT = $5e
 
 ; only touches A
 _fastMultiplySetup8x8:
-
-  sta T1
-  sta qsm1d+1
-  sta qsm3d+1
-  sta qsm5d+1
-  sta qsm6d+1
-  eor #$ff
-  sta qsm2d+1
-  sta qsm4d+1
-  rts
+	;; 	sta T1
+	sta qsm1d+1
+	sta qsm3d+1
+	sta qsm5d+1
+	sta qsm6d+1
+	eor #$ff
+	sta qsm2d+1
+	sta qsm4d+1
+	rts
 
 ; only touches A and X
 _fastMultiply8x8:
-                sta T2
-                tax
-                sec                       
-qsm1d:           lda square1_lo,x          
-qsm2d:           sbc square2_lo,x          
-                sta PRODUCT
-qsm3d:           lda square1_hi,x          
-qsm4d:           sbc square2_hi,x
+        sta T2
+        tax
+        sec                       
+qsm1d:  lda square1_lo,x          
+qsm2d:  sbc square2_lo,x          
+        sta PRODUCT
+qsm3d:  lda square1_hi,x          
+qsm4d:  sbc square2_hi,x
 
         ; fix for sign (CHacking16)
         ; since this is fixed, the setup could obliterate the code
         ; best to do something like BIT $1000 or CMP $1000 (3 bytes, 4 cycles) as the NOP
         ; way too expensive setup (20 cycles extra vs saving 5 per multiply)
-qsm5d:   ldx #0 ; T1
+qsm5d:  ldx #0 ; T1
         bpl :+
         ; sub 8bit number
         sec
@@ -628,7 +589,7 @@ qsm5d:   ldx #0 ; T1
         ldx T2
         bpl :+
         sec
-qsm6d:   sbc #0 ; T1
+qsm6d:  sbc #0 ; T1
         :
 
         sta PRODUCT+1
@@ -640,16 +601,15 @@ qsm6d:   sbc #0 ; T1
 
 
 _fastMultiplySetup16x8:
-
-  sta T1
-  sta hsm1a+1                                             
-  sta hsm3a+1                                             
-  sta hsm3b+1
-  eor #$ff                                              
-  sta hsm2a+1                                             
-  sta hsm4a+1                                             
-  sta hsm4b+1
-  rts
+	sta T1
+	sta hsm1a+1                                             
+	sta hsm3a+1                                             
+	sta hsm3b+1
+	eor #$ff                                              
+	sta hsm2a+1                                             
+	sta hsm4a+1                                             
+	sta hsm4b+1
+	rts
 
 _fastMultiply16x8:
 ; AX 16bit value
@@ -664,39 +624,38 @@ _fastMultiply16x8:
 ;   PRODUCT!                                              
 ; since we are just using the upper 16 bits, we can ignore aa
 
-                sta T2
-                stx T2+1
-                ; Perform X * y = BBbb
-                sec                       
-hsm1a:           lda square1_lo,x          
-hsm2a:           sbc square2_lo,x          
-                sta _hbb+1
-hsm3a:           lda square1_hi,x          
-hsm4a:           sbc square2_hi,x
-                sta PRODUCT+1
+        sta T2
+        stx T2+1
+;; Perform X * y = BBbb
+        sec             	          
+hsm1a:  lda square1_lo,x          
+hsm2a:	sbc square2_lo,x          
+        sta _hbb+1
+hsm3a:  lda square1_hi,x          
+hsm4a:  sbc square2_hi,x
+        sta PRODUCT+1
 
-                ; Perform A * y = AAaa
-                ldx T2
-                sec                          
+;; Perform A * y = AAaa
+        ldx T2
+        sec                          
 .if 0
-hsm1b:           lda square1_lo,x  ; only need this for one bit of extra accuracy           
-hsm2b:           sbc square2_lo,x             
-                sta _haa+1        ; don't need this                  
+hsm1b:  lda square1_lo,x  ; only need this for one bit of extra accuracy           
+hsm2b:  sbc square2_lo,x             
+        sta _haa+1        ; don't need this                  
 .endif
-hsm3b:           lda square1_hi,x             
-hsm4b:           sbc square2_hi,x             
-                sta _hAA+1                    
+hsm3b:  lda square1_hi,x             
+hsm4b:  sbc square2_hi,x             
+        sta _hAA+1                    
 
         clc
-_hAA:    lda #0
-_hbb:    adc #0
+_hAA:   lda #0
+_hbb:   adc #0
         sta PRODUCT
         bcc :+
         inc PRODUCT+1
 :
 
-; fix for sign - see CHacking16
-
+;; fix for sign - see CHacking16
         lda T1
         bpl :+
         ; sub 16bit number
@@ -716,10 +675,8 @@ _hbb:    adc #0
         sbc T1
         sta PRODUCT+1
         :
-
         lda PRODUCT
         ldx PRODUCT+1
-
 rts
 
 _fastMultiplySetup16x8e24:

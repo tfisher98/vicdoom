@@ -54,6 +54,7 @@ char __fastcall__ getNextEdge(char sec, char i);
 
 void __fastcall__ resetDoorClosedAmounts(void);
 char __fastcall__ isEdgeDoor(char i);
+char __fastcall__ isEdgeSwitch(char i);
 char __fastcall__ isDoorClosed(char i);
 void __fastcall__ basicOpenDoor(char i);
 void __fastcall__ basicCloseDoor(char i);

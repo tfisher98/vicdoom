@@ -48,9 +48,9 @@ tmasktab:
 .byte	$C0, $30, $0C, $03
 
 filled_hi:
-.res 32, 0
+.res 32, 0 			; SCREENWIDTH
 filled_lo:
-.res 32, 0
+.res 32, 0			; SCREENWIDTH
 
 shiftcode:
 
@@ -94,7 +94,7 @@ nop
 .proc _clearFilled: near
 
 lda #$7f
-ldx #31
+ldx #31 			; SCREENWIDTH-1
 keepclearing:
 sta filled_hi, x
 sta filled_lo, x
@@ -107,8 +107,8 @@ rts
 .proc _testFilled: near
 
 clc
-adc #16
-tax
+adc #16			; HALFSCREENWIDTH
+tax	
 lda filled_hi, x
 rts
 
@@ -123,13 +123,12 @@ sta tmp
 ldy #0
 lda (sp),y
 clc
-adc #16
+adc #16			; HALFSCREENWIDTH
 tay
 lda tmp
 sta filled_lo,y
 txa
 sta filled_hi,y
-
 jmp incsp1
 
 .endproc
@@ -144,14 +143,13 @@ stx tmp+1
 ldy #0
 lda (sp),y
 clc
-adc #16
+adc #16			; HALFSCREENWIDTH
 tay
 sec
 lda filled_lo,y
 sbc tmp
 lda filled_hi,y
 sbc tmp+1
-
 jmp incsp1
 
 .endproc

@@ -211,8 +211,6 @@ void __fastcall__ drawWall(char sectorIndex, char curEdgeIndex, char nextEdgeInd
 {
   char edgeGlobalIndex = getEdgeIndex(sectorIndex, curEdgeIndex);
   char textureIndex = getEdgeTexture(edgeGlobalIndex);
-  char type = textureIndex & EDGE_TYPE_MASK;
-  char prop = textureIndex & EDGE_PROP_MASK;
   char edgeLen = getEdgeLen(edgeGlobalIndex);
 
   int x1 = getTransformedX(curEdgeIndex),       y1 = getTransformedY(curEdgeIndex);
@@ -223,63 +221,54 @@ void __fastcall__ drawWall(char sectorIndex, char curEdgeIndex, char nextEdgeInd
   unsigned int t, texI, curY, h;
   char fit;
 
-  automap_sawEdge(edgeGlobalIndex);
-
-  textureIndex &= EDGE_TEX_MASK;
-  fit = (textureIndex == 2 || textureIndex == 5 || textureIndex == 6); // techwall, switch, door
-  if (type == EDGE_TYPE_JAMB) {
-    texI = prop >> EDGE_PROP_SHIFT;
+  if ((textureIndex & EDGE_TYPE_MASK) == EDGE_TYPE_JAMB) {
+    texI = (textureIndex & EDGE_PROP_MASK) >> EDGE_PROP_SHIFT;
     textureIndex = 7;
+    fit = 2;
+  } else {
+    textureIndex &= EDGE_TEX_MASK;
+    fit = (textureIndex == 2 || textureIndex == 5 || textureIndex == 6); // techwall, switch, door
   }
 
-  if ((x_L <= 0) && (x_R > 0) && testFilled(0) == 0x7f) {
-    if (type == EDGE_TYPE_DOOR) {
-      typeAtCenterOfView = TYPE_DOOR;
-      itemAtCenterOfView = edgeGlobalIndex;
-    } else if (type == EDGE_TYPE_SWITCH) {
-      typeAtCenterOfView = TYPE_SWITCH;
-      itemAtCenterOfView = edgeGlobalIndex;
-    }
+  for (curX = x_L, x4 = (x_L<<1)+3; curX != x_R; ++curX, x4 += 2) {
+    if (testFilled(curX) != 0x7f) continue;
+
+    fastMultiplySetup16x8(x4);
+    denom = dx - (fastMultiply16x8(dy)<<3);
+    if (denom <= 0) continue;
+    
+    numer = (fastMultiply16x8(y1)<<3) - x1; 
+    t = div88(numer, denom);
+    if (t > 255) t = 255;
+    
+    fastMultiplySetup16x8(t>>1);
+    curY = (fastMultiply16x8(dy)<<1) + y1;
+    setFilled(curX, curY);
+    if (curY <= 0) continue;
+    
+    h = div128over(curY);
+    
+    if (fit==0) {
+      fastMultiplySetup8x8(t>>1);
+      texI = (fastMultiply8x8(edgeLen)>>5) & 15;
+    } else if (fit==1) { 
+      texI = t >> 4;
+    } 
+    
+    drawColumn(textureIndex, texI, curX, curY, h);      
   }
-  
-  for (curX = x_L, x4 = 2*x_L+3; curX < x_R; ++curX, x4 += 2) {
-      if (testFilled(curX) != 0x7f) continue;    
-
-      fastMultiplySetup16x8(x4);
-      denom = dx - (fastMultiply16x8(dy)<<3);
-      if (denom <= 0) continue;
-
-      numer = (fastMultiply16x8(y1)<<3) - x1; 
-      t = div88(numer, denom);
-      if (t > 255) t = 255;
-
-      fastMultiplySetup16x8(t>>1);
-      curY = (fastMultiply16x8(dy)<<1) + y1;
-      setFilled(curX, curY);
-      if (curY <= 0) continue;
-
-      h = div128over(curY);
-               
-      if (type != EDGE_TYPE_JAMB) {
-	if (fit) { 
-	  texI = t >> 4;
-	} else {
-	  fastMultiplySetup8x8(t>>1);
-	  texI = (fastMultiply8x8(edgeLen)>>5) & 15;
-	}
-      }
-
-      drawColumn(textureIndex, texI, curX, curY, h);      
-   }
 }
 
 signed char __fastcall__ drawDoor(char sectorIndex, char curEdgeIndex, char nextEdgeIndex, signed char x_L, signed char x_R)
 {
   char edgeGlobalIndex = getEdgeIndex(sectorIndex, curEdgeIndex);
 
-  if (isDoorClosed(edgeGlobalIndex))
-  {
-    drawWall(sectorIndex, curEdgeIndex, nextEdgeIndex, x_L, x_R);
+  if (isDoorClosed(edgeGlobalIndex)) {
+    if ((x_L <= 0) && (x_R > 0) && testFilled(0) == 0x7f) {
+      typeAtCenterOfView = TYPE_DOOR;
+      itemAtCenterOfView = edgeGlobalIndex;
+    }    
+    drawWall(sectorIndex, curEdgeIndex, nextEdgeIndex, x_L, x_R);    
     return x_R;
   }
   return x_L;
@@ -783,26 +772,19 @@ void __fastcall__ drawSpans(void)
 
      // STEP 1 - draw objects belonging to this sector!
      // fill in the table of written columns as we progress
-     //POKE(0x900f, 11);
      drawObjectsInSector(sectorIndex, x_L, x_R);
-     //POKE(0x900f, 13);
 
-     //POKE(0x900f, 11);
      transformSectorToScreenSpace(sectorIndex);
-     //POKE(0x900f, 13);
 
      firstEdge = ffeis(sectorIndex, x_L, x_R);
      // didn't find a first edge - must be behind
-     if (firstEdge == -1)
-     {
-        continue;
-     }
+     if (firstEdge == -1) continue;
      
      // now fill the span buffer with these edges
 
      curEdge = firstEdge;
      curX = x_L;
-     while (curX < x_R)
+     while (curX != x_R)
      {
         // update the edge
         nextEdge = getNextEdge(sectorIndex, curEdge);
@@ -815,7 +797,8 @@ void __fastcall__ drawSpans(void)
         {
            if (isEdgeDoor(edgeGlobalIndex))
            {
-              curX = drawDoor(sectorIndex, curEdge, nextEdge, curX, nextX);
+	     automap_sawEdge(edgeGlobalIndex);
+	     curX = drawDoor(sectorIndex, curEdge, nextEdge, curX, nextX);
            }
            if (curX < nextX)
            {
@@ -835,7 +818,12 @@ void __fastcall__ drawSpans(void)
         }
         else
         {
-           drawWall(sectorIndex, curEdge, nextEdge, curX, nextX);
+	  if (isEdgeSwitch(edgeGlobalIndex) && (curX <= 0) && (nextX > 0) && testFilled(0) == 0x7f) {
+	    typeAtCenterOfView = TYPE_SWITCH;
+	    itemAtCenterOfView = edgeGlobalIndex;
+	  }    	  
+	  automap_sawEdge(edgeGlobalIndex);
+	  drawWall(sectorIndex, curEdge, nextEdge, curX, nextX);
         }
         curX = nextX;
         curEdge = nextEdge;
@@ -852,7 +840,7 @@ void __fastcall__ openDoor(char edgeGlobalIndex)
     char i;
     if (isDoorClosed(edgeGlobalIndex))
     {
-        for (i = 0; i < 4; ++i)
+        for (i = 0; i != 4; ++i)
         {
           if (doorOpenTime[i] == 0)
           {
@@ -2094,14 +2082,14 @@ nextLevel:
       p_enemy_startframe();
       clearSecondBuffer();
       // draw to second buffer
-      //setTickCount();
+      setTickCount();
       drawSpans();
-      //print2DigitNumToScreen(getTickCount(), 0x1016);
+      print2DigitNumToScreen(getTickCount(), 0x0400 + 40*1 + 36);
       // this takes about 30 raster lines
       copyToPrimaryBuffer();
-      //setTickCount();
+      setTickCount();
       p_enemy_think();
-      //print2DigitNumToScreen(getTickCount(), 0x102C);
+      print2DigitNumToScreen(getTickCount(), 0x0400 + 40*2 + 36);
       
       ++frame;
       frame &= 7;
