@@ -24,8 +24,8 @@
 charrowsize = 40
 charscreenstart := $0400
 charcolorstart := $d800	
-message1 := charscreenstart + charrowsize*16
-message2 := charscreenstart + charrowsize*17
+message1 := charscreenstart + charrowsize*14
+message2 := charscreenstart + charrowsize*15
 menustart := charscreenstart + charrowsize*11
 facestart := charscreenstart + charrowsize*20+10
 facecolorstart := charcolorstart + charrowsize*20+10	
