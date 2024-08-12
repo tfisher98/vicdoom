@@ -618,7 +618,7 @@ _fastMultiply16x8:
 ;       AAaa                                              
 ;  +  BBbb                                                
 ; ----------                                              
-;   PRODUCT!                                              
+;   PRODUCT!  high 16 bits of result returned in X:A
 ; since we are just using the upper 16 bits, we can ignore aa
 ; we allow one bit of error from not checking if aa should carry  
         sta T2
@@ -636,10 +636,10 @@ hsm4a:  sbc square2_hi,x
         bcc :+
         sbc T1
         :
-	tax 			; x holds PRODUCT+1 from here to return
+	tax 		 ; x holds PRODUCT+1 from here to return
 	;; perform A * y = AAaa. ignore aa (lose one bit accuracy from wrong carry)
         sec
-hsm3b:  lda square1_hi,y	; a holds PRODUCT from here to return
+hsm3b:  lda square1_hi,y ; a holds PRODUCT from here to return
 hsm4b:  sbc square2_hi,y             
 	;; add AA+bb and capture its carry to high byte
         clc
@@ -650,7 +650,6 @@ _hbb:   adc #0
 	;; sign fixup : subtract T2 (16bit) in case T1 is negative
         ldy T1
         bpl :+
-        ; sub 16bit number
         sec
         sbc T2
         tay
@@ -675,17 +674,15 @@ _fastMultiplySetup16x8e24:
 	rts
 
 _fastMultiply16x8e24:
-; AX 16bit value
-; y 8bit value
-
-; A * y = AAaa                                        
-; X * y = BBbb                                        
-
+; AX=T2 16bit value; y=T1 8bit value
+;   A * y = AAaa
+;   X * y = BBbb
 ;       AAaa                                              
 ;  +  BBbb                                                
 ; ----------                                              
-;   PRODUCT!
+;   PRODUCT! sign extended result returned in sreg+1:sreg:X:A
         sta T2
+	tay
         stx T2+1
 	; Perform X * y = BBbb
         sec       	          
@@ -694,57 +691,48 @@ fsm2a:  sbc square2_lo,x
         sta _fbb+1
 fsm3a:  lda square1_hi,x          
 fsm4a:  sbc square2_hi,x
-        sta sreg
-
-        ; Perform A * y = AAaa
-        ldx T2
-        sec                          
-fsm1b:  lda square1_lo,x
-fsm2b:  sbc square2_lo,x             
-        sta PRODUCT                  
-fsm3b:  lda square1_hi,x             
-fsm4b:  sbc square2_hi,x             
-        sta _fAA+1                    
-
-        clc
-_fAA:   lda #0
-_fbb:   adc #0
-        sta PRODUCT+1
+	;; sign fixup : subtract T1 (8bit) in case T2 is negative
+        cpx #$80 
         bcc :+
-        inc sreg
-:
-; fix for sign - see CHacking16
-        lda T1
-        bpl :+
-        ; sub 16bit number
-        sec
-        lda PRODUCT+1
-        sbc T2
-        sta PRODUCT+1
-        lda sreg
-        sbc T2+1
-        sta sreg
-        :
-        lda T2+1
-        bpl :+
-        ; sub 8bit number
-        sec
-        lda sreg
         sbc T1
-        sta sreg
         :
-
-        ; sign extend product
-        ldx #0
-        lda sreg
+	tax 		 ; x holds byte3 from here to sign extension
+        ; Perform A * y = AAaa
+        sec                          
+fsm1b:  lda square1_lo,y
+fsm2b:  sbc square2_lo,y             
+        sta PRODUCT	 ; byte1 : eventually returned in A 
+fsm3b:  lda square1_hi,y
+fsm4b:  sbc square2_hi,y
+	;; add AA+bb and capture its carry to byte3
+        clc
+_fbb:   adc #0
+        bcc :+
+        inx
+	:
+	;; sign fixup : subtract T2 (16bit) in case T1 is negative
+        ldy T1
         bpl :+
-        ldx #255
+        sec
+        sbc T2
+	tay
+	txa
+        sbc T2+1
+	tax
+	tya
         :
-        stx sreg+1
-
-        lda PRODUCT
-        ldx PRODUCT+1
-rts
+	;;  24 bit result held in X:A:PRODUCT
+	; sign extend and store to sreg+1:sreg:X:A
+	ldy #0
+	cpx #$80
+	bcc :+
+	dey
+	:
+	sty sreg+1
+	stx sreg
+	tax
+	lda PRODUCT
+	rts
 
 _generateMulTab:
 
