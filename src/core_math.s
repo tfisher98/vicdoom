@@ -554,16 +554,24 @@ PRODUCT = $5e
 
 ; only touches A
 _fastMultiplySetup8x8:
-	;; 	sta T1
 	sta qsm1d+1
 	sta qsm3d+1
-	sta qsm5d+1
 	sta qsm6d+1
+	sta qsm7d+1
 	eor #$ff
 	sta qsm2d+1
 	sta qsm4d+1
+;;; extra selfmod here saves avg(0,0,5,8) = 3.25 per product at cost of 8.5 cycles here.
+;;; current profiled workload its about a tossup : skip it
+	;; bmi :+ 			
+	;; lda #6			; case T1 negative 
+	;; sta qsm5d+1
+	;; rts
+	;; :
+	;; lda #9			; case T1 positive
+	;; sta qsm5d+1
 	rts
-
+	
 ; only touches A and X
 _fastMultiply8x8:
         sta T2
@@ -574,31 +582,23 @@ qsm2d:  sbc square2_lo,x
         sta PRODUCT
 qsm3d:  lda square1_hi,x          
 qsm4d:  sbc square2_hi,x
-
-        ; fix for sign (CHacking16)
-        ; since this is fixed, the setup could obliterate the code
-        ; best to do something like BIT $1000 or CMP $1000 (3 bytes, 4 cycles) as the NOP
-        ; way too expensive setup (20 cycles extra vs saving 5 per multiply)
-qsm5d:  ldx #0 ; T1
-        bpl :+
-        ; sub 8bit number
+        ; fix for sign (see CHacking16)
+        cpx #$80 ; set carry in case T2 is negative 
+qsm5d:	bcc :+
+qsm6d:  sbc #0 ; subtract T1 (selfmod) in case T2 is negative
+	:      ; branch target with no extra selfmod
+qsm7d:	ldx #0 ; T1
+	bpl :+
+               ; branch target extra selfmod case T1 is negative
         sec
         sbc T2
-        :
-
-        ldx T2
-        bpl :+
-        sec
-qsm6d:  sbc #0 ; T1
-        :
-
+        :      ; branch target extra selfmod case T1 is positive
         sta PRODUCT+1
         lda PRODUCT
         ; make sure N is set based on MSB on return
         ldx PRODUCT+1
         ; return value in AX, but also in PRODUCT/PRODUCT+1 for max flexibility
-        rts
-
+        rts	
 
 _fastMultiplySetup16x8:
 	sta T1
@@ -612,86 +612,67 @@ _fastMultiplySetup16x8:
 	rts
 
 _fastMultiply16x8:
-; AX 16bit value
-; y 8bit value
-
-; A * y = AAaa                                        
-; X * y = BBbb                                        
-
+; AX=T2 16bit value; y=T1 8bit value
+;   A * y = AAaa                                        
+;   X * y = BBbb
 ;       AAaa                                              
 ;  +  BBbb                                                
 ; ----------                                              
 ;   PRODUCT!                                              
 ; since we are just using the upper 16 bits, we can ignore aa
-
+; we allow one bit of error from not checking if aa should carry  
         sta T2
+	tay
         stx T2+1
-;; Perform X * y = BBbb
-        sec             	          
+	;; Perform X * y = BBbb
+        sec
 hsm1a:  lda square1_lo,x          
 hsm2a:	sbc square2_lo,x          
         sta _hbb+1
 hsm3a:  lda square1_hi,x          
 hsm4a:  sbc square2_hi,x
-        sta PRODUCT+1
-
-;; Perform A * y = AAaa
-        ldx T2
-        sec                          
-.if 0
-hsm1b:  lda square1_lo,x  ; only need this for one bit of extra accuracy           
-hsm2b:  sbc square2_lo,x             
-        sta _haa+1        ; don't need this                  
-.endif
-hsm3b:  lda square1_hi,x             
-hsm4b:  sbc square2_hi,x             
-        sta _hAA+1                    
-
-        clc
-_hAA:   lda #0
-_hbb:   adc #0
-        sta PRODUCT
+	;; sign fixup : subtract T1 (8bit) in case T2 is negative
+        cpx #$80 
         bcc :+
-        inc PRODUCT+1
-:
-
-;; fix for sign - see CHacking16
-        lda T1
+        sbc T1
+        :
+	tax 			; x holds PRODUCT+1 from here to return
+	;; perform A * y = AAaa. ignore aa (lose one bit accuracy from wrong carry)
+        sec
+hsm3b:  lda square1_hi,y	; a holds PRODUCT from here to return
+hsm4b:  sbc square2_hi,y             
+	;; add AA+bb and capture its carry to high byte
+        clc
+_hbb:   adc #0 
+        bcc :+
+        inx
+	:
+	;; sign fixup : subtract T2 (16bit) in case T1 is negative
+        ldy T1
         bpl :+
         ; sub 16bit number
         sec
-        lda PRODUCT
         sbc T2
-        sta PRODUCT
-        lda PRODUCT+1
+        tay
+        txa
         sbc T2+1
-        sta PRODUCT+1
+        tax
+	tya
         :
-        lda T2+1
-        bpl :+
-        ; sub 8bit number
-        sec
-        lda PRODUCT+1
-        sbc T1
-        sta PRODUCT+1
-        :
-        lda PRODUCT
-        ldx PRODUCT+1
 rts
 
 _fastMultiplySetup16x8e24:
-
-  sta T1
-  sta fsm1a+1                                             
-  sta fsm3a+1                                             
-  sta fsm1b+1
-  sta fsm3b+1
-  eor #$ff                                              
-  sta fsm2a+1                                             
-  sta fsm4a+1                                             
-  sta fsm2b+1                                             
-  sta fsm4b+1
-  rts
+	sta T1
+	sta fsm1a+1                                             
+	sta fsm3a+1                                             
+	sta fsm1b+1
+	sta fsm3b+1
+	eor #$ff                                              
+	sta fsm2a+1                                             
+	sta fsm4a+1                                             
+	sta fsm2b+1                                             
+	sta fsm4b+1
+	rts
 
 _fastMultiply16x8e24:
 ; AX 16bit value
@@ -703,39 +684,36 @@ _fastMultiply16x8e24:
 ;       AAaa                                              
 ;  +  BBbb                                                
 ; ----------                                              
-;   PRODUCT!                                              
+;   PRODUCT!
+        sta T2
+        stx T2+1
+	; Perform X * y = BBbb
+        sec       	          
+fsm1a: 	lda square1_lo,x          
+fsm2a:  sbc square2_lo,x          
+        sta _fbb+1
+fsm3a:  lda square1_hi,x          
+fsm4a:  sbc square2_hi,x
+        sta sreg
 
-                sta T2
-                stx T2+1
-                ; Perform X * y = BBbb
-                sec                       
-fsm1a:           lda square1_lo,x          
-fsm2a:           sbc square2_lo,x          
-                sta _fbb+1
-fsm3a:           lda square1_hi,x          
-fsm4a:           sbc square2_hi,x
-                sta sreg
-
-                ; Perform A * y = AAaa
-                ldx T2
-                sec                          
-fsm1b:           lda square1_lo,x
-fsm2b:           sbc square2_lo,x             
-                sta PRODUCT                  
-fsm3b:           lda square1_hi,x             
-fsm4b:           sbc square2_hi,x             
-                sta _fAA+1                    
+        ; Perform A * y = AAaa
+        ldx T2
+        sec                          
+fsm1b:  lda square1_lo,x
+fsm2b:  sbc square2_lo,x             
+        sta PRODUCT                  
+fsm3b:  lda square1_hi,x             
+fsm4b:  sbc square2_hi,x             
+        sta _fAA+1                    
 
         clc
-_fAA:    lda #0
-_fbb:    adc #0
+_fAA:   lda #0
+_fbb:   adc #0
         sta PRODUCT+1
         bcc :+
         inc sreg
 :
-
 ; fix for sign - see CHacking16
-
         lda T1
         bpl :+
         ; sub 16bit number
@@ -766,7 +744,6 @@ _fbb:    adc #0
 
         lda PRODUCT
         ldx PRODUCT+1
-
 rts
 
 _generateMulTab:
