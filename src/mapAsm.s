@@ -931,8 +931,7 @@ ldy vertexCount
 loop1:
 
 modify1:
-  lda secVerts,y
-  tax
+  ldx secVerts,y
   stx modify1a+1
   lda vertX,x
   jsr _fastMultiply8x8
@@ -965,17 +964,16 @@ modify2:
   jsr _fastMultiply8x8
   ; y = vy*cosa + vx*sina - py*cosa - px*sina
   clc
-  lda xfvertYlo,y
-  adc PRODUCT
+  adc xfvertYlo,y
   sta PRODUCT
-  lda xfvertYhi,y
-  adc PRODUCT+1
-  sta PRODUCT+1
+  txa
+  adc xfvertYhi,y
+  tax	
   sec
   lda PRODUCT
   sbc pycosa_plus_pxsina
   sta PRODUCT
-  lda PRODUCT+1
+  txa
   sbc pycosa_plus_pxsina+1
 
   asl PRODUCT
@@ -995,12 +993,12 @@ modify2a:
   sta PRODUCT
   lda xfvertXhi,y
   sbc PRODUCT+1
-  sta PRODUCT+1
+  tax
   clc
   lda PRODUCT
   adc pysina_minus_pxcosa
   sta PRODUCT
-  lda PRODUCT+1
+  txa
   adc pysina_minus_pxcosa+1
 
   asl PRODUCT
@@ -1049,7 +1047,7 @@ continue:
 
 rts
 
-.endproc
+.endproc ;_transformSectorToScreenSpace
 
 .endif
 
