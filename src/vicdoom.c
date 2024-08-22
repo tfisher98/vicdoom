@@ -759,7 +759,7 @@ void __fastcall__ drawSpans(void)
 
   preTransformSectors();
 
-  while (stackTop >= 0)
+  while (stackTop != -1)
   {
      sectorIndex = spanStackSec[stackTop];
      x_L = spanStackL[stackTop];

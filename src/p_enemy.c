@@ -43,7 +43,6 @@
 
 #pragma staticlocals(on)
 
-#define fixed_t int
 #define boolean char
 #define false 0
 #define true 1
@@ -628,7 +627,7 @@ char __fastcall__ try_move(int trydx, int trydy)
   return sectorToReturn;
 }
 
-boolean __fastcall__ P_TryMove(fixed_t trydx, fixed_t trydy)
+boolean __fastcall__ P_TryMove(int trydx, int trydy)
 {
    // check the move is valid
    char nextSector = try_move(trydx, trydy);
@@ -656,10 +655,9 @@ signed char yspeed[8] = {0,FU_45,MIN_SPEED,FU_45,0,-FU_45,-MIN_SPEED,-FU_45};
 
 boolean __fastcall__ P_Move(void)
 {
-  fixed_t	trydx;
-  fixed_t	trydy;
+  int trydx, trydy;
   char moveDir = mobjMovedir();
-  char speed = getMobjSpeed();
+  signed char speed = getMobjSpeed();
     
   // warning: 'catch', 'throw', and 'try'
   // are all C++ reserved words
@@ -674,8 +672,9 @@ boolean __fastcall__ P_Move(void)
     return true;
   }
 
-  trydx = speed*xspeed[moveDir];
-  trydy = speed*yspeed[moveDir];
+  fastMultiplySetup8x8(speed);
+  trydx = fastMultiply8x8(xspeed[moveDir]);
+  trydy = fastMultiply8x8(yspeed[moveDir]);
 
   return P_TryMove(trydx, trydy);
 }
