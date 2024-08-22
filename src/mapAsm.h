@@ -29,6 +29,30 @@ enum EObjType
    kOT_ExplodingBarrel
 };
 
+// types used for typeAtCenterOfView
+#define TYPE_DOOR 1
+#define TYPE_OBJECT 2
+#define TYPE_SWITCH 3
+
+#define EDGE_TYPE_MASK 0xC0
+#define EDGE_PROP_MASK 0x38
+#define EDGE_TEX_MASK  0x07
+#define EDGE_TYPE_SHIFT 6
+#define EDGE_PROP_SHIFT 3
+
+#define EDGE_TYPE_NORMAL 0
+#define EDGE_TYPE_DOOR (1<<6)
+#define EDGE_TYPE_JAMB (2<<6)
+#define EDGE_TYPE_SWITCH (3<<6)
+
+#define SWITCH_TYPE_ENDLEVEL 0
+#define SWITCH_TYPE_OPENDOOR 1
+#define SWITCH_TYPE_REMOVEDOOR 2
+#define SWITCH_TYPE_OPENDOORP 3
+
+#define DOOR_TYPE_SHOT 4
+#define DOOR_TYPE_ONEWAY 6
+
 char __fastcall__ getScreenX(char i);
 int __fastcall__ getTransformedX(char i);
 int __fastcall__ getTransformedY(char i);
