@@ -693,40 +693,36 @@ void __fastcall__ drawTransparentObjects(void)
 }
 
 // find first edge in sector
-signed char __fastcall__ ffeis(char curSec, signed char x_L, signed char x_R)
+signed char __fastcall__ ffeis(char curSec, signed char x_L)
 {
-  char i, numVerts;
-  numVerts = getNumVerts(curSec);
-  for (i = 0; i < numVerts; ++i)
+  char i;
+  char numVerts = getNumVerts(curSec);
+  for (i = 0; i != numVerts; ++i)
   {
     signed char sx1, sx2;
     int ty1, ty2;
-    char ni;
-    ni = (i + 1);
+    char ni = (i + 1);
     if (ni == numVerts) ni = 0;
     sx1 = getScreenX(i);
     sx2 = getScreenX(ni);
     ty1 = getTransformedY(i);
     ty2 = getTransformedY(ni);
-    // preprocess
     if (curSec == playerSector)
     {
       // when inside the sector, adjust the edges clipping the camera plane
       // so that they are definitely facing the player
-      if (ty1 <= 0 && ty2 > 0) sx1 = x_L;
-      if (ty1 > 0 && ty2 <= 0) sx2 = x_R;
-      if (sx1 <= x_L && sx2 > x_L)
-      {
-        return i;
+      if (sx2 > x_L) {
+	if (sx1 <= x_L || (ty1 <= 0 && ty2 > 0)) 
+	  return i;
+      } else {
+	if (sx1 <= x_L && ty1 > 0 && ty2 <= 0)
+	  return i;
       }
     }
     else
     {
-      char firstVertex = getVertexIndex(curSec, i);
       if (sx1 <= x_L && sx2 > x_L && (ty1 >= 0 || ty2 >= 0))
-      {
         return i;
-      }
     }
   }
   return -1;
@@ -776,7 +772,7 @@ void __fastcall__ drawSpans(void)
 
      transformSectorToScreenSpace(sectorIndex);
 
-     firstEdge = ffeis(sectorIndex, x_L, x_R);
+     firstEdge = ffeis(sectorIndex, x_L);
      // didn't find a first edge - must be behind
      if (firstEdge == -1) continue;
      
