@@ -110,26 +110,15 @@ signed char __fastcall__ drawDoor(char sectorIndex, char curEdgeIndex, char next
 
 unsigned char getWidthFromHeight(char ws, unsigned char h)
 {
-  unsigned char w;
   switch (ws)
   {
-  case 2:
-    w = h>>1;
-    break;
-  case 3:
-    w = (h + (h>>2))>>2;
-    break;
-  case 4:
-    w = h>>2;
-    break;
-  case 5:
-    w = (h + (h>>1))>>3;
-    break;
-  case 8:
-    w = h>>3;
-    break;
+  case 2: return h>>1;
+  case 3: return (h + (h>>2))>>2;
+  case 4: return h>>2;
+  case 5: return (h + (h>>1))>>3;
+  case 8: return h>>3;
   }
-  return w;
+  return 0; // should not occur
 }
 
 char objO[8];
@@ -138,102 +127,69 @@ int objY[8];
 
 void __fastcall__ drawObjectInSector(char objIndex, signed char x_L, signed char x_R)
 {
-  // perspective transform (see elsewhere for optimization)
-  //int h = (SCREENHEIGHT/16) * 512 / (vy/16);
   int vy = objY[objIndex];
-  //unsigned int h = div88(128, vy);
-  unsigned int h = div128over(vy);
-  unsigned char hc;
+  unsigned int h = div128over(vy); // h = (SCREENHEIGHT/16) * 512 / (vy/16); 
+  unsigned char hc = (h < 128) ? h : 127;
 
   char o = objO[objIndex];
   char objectType = getObjectType(o);
   char animate = 0;
   char textureIndex;
-  unsigned char w;
-  int sx;
-  signed char leftX;
-  signed char rightX;
-  signed char startX;
-  signed char endX;
-  signed char curX;
+  int sx, vx;
+  signed char leftX, rightX, startX, endX, curX;
   char texI;
 
-  if (objectType < 5)
-  {
+  unsigned char w = getWidthFromHeight(texFrameWidthScale(objectType), hc);
+  if (w == 0) return;
+  
+  if (objectType < 5) {
     textureIndex = p_enemy_get_texture(o);
-    if (textureIndex & TEX_ANIMATE)
-    {
+    if (textureIndex & TEX_ANIMATE) {
       animate = 1;
       textureIndex &= ~TEX_ANIMATE;
     }
-  }
-  else
-  {
+  } else {
     textureIndex = texFrameTexture(objectType);
   }
-  //w = h/texFrames[objectType].widthScale;
-  if (h < 128)
-  {
-    hc = h;
-  }
-  else
-  {
-    hc = 127;
-  }
-  w = getWidthFromHeight(texFrameWidthScale(objectType), hc);
-  if (w > 0)
-  {
-     //sx = vx / (vy / HALFSCREENWIDTH);
-     int vx = objX[objIndex];
-     sx = leftShift4ThenDiv(vx, vy);
-     if (sx > -64 && sx < 64)
-     {
-       leftX = sx - w;
-       rightX = sx + w;
-       startX = leftX;
-       endX = rightX;
-       if (startX < -16) startX = -16;
-       if (endX > 16) endX = 16;
-       if (startX < x_R && endX > x_L)
-       {
-         char first = 1;
-          if (startX < endX)
-          {
-            p_enemy_wasseenthisframe(o);
-          }
-          for (curX = startX; curX < endX; ++curX)
-          {
-             if (testFilledWithY(curX, vy) >= 0)
-             {
-                setFilled(curX, vy);
-                if (curX == 0)
-                {
-                  typeAtCenterOfView = TYPE_OBJECT;
-                  itemAtCenterOfView = o;
-                }
-                // compensate for pixel samples being mid column
-                //texI = TEXWIDTH * (2*(curX - leftX) + 1) / (4 * w);
-                texI = getObjectTexIndex(w, curX - leftX);
-                if (animate)
-                {
-                  // change the animation speed?
-                  if ((frame & 2) != 0) texI = (TEXWIDTH - 1) - texI;
-                }
-                if (first)
-                {
-                  first = 0;
-                  drawColumn(textureIndex, texI, curX, vy, hc);
-                }
-                else
-                {
-                  drawColumnSameY(textureIndex, texI, curX, vy, hc);
-                }
-             }
-          }
-       }
-     }
+         
+  vx = objX[objIndex];
+  sx = leftShift4ThenDiv(vx, vy); //sx = vx / (vy / HALFSCREENWIDTH);
+  if (sx > -64 && sx < 64) {
+    leftX = sx - w;
+    rightX = sx + w;
+    startX = leftX;
+    endX = rightX;
+    if (startX < -16) startX = -16; // -HALFSCREENWIDTH
+    if (endX > 16) endX = 16; // HALFSCREENWIDTH
+    if (startX < x_R && endX > x_L) {
+      char first = 1;
+      if (startX < endX) {
+	p_enemy_wasseenthisframe(o);
+      }
+      for (curX = startX; curX != endX; ++curX) {
+	if (testFilledWithY(curX, vy) < 0) continue;
+	
+	setFilled(curX, vy);
+	if (curX == 0) {
+	  typeAtCenterOfView = TYPE_OBJECT;
+	  itemAtCenterOfView = o;
+	}
+	texI = getObjectTexIndex(w, curX - leftX); //texI = TEXWIDTH * (2*(curX - leftX) + 1) / (4 * w);
+	if (animate) {
+	  // change the animation speed?
+	  if ((frame & 2) != 0) texI = (TEXWIDTH - 1) - texI;
+	}
+	if (first) {
+	  first = 0;
+	  drawColumn(textureIndex, texI, curX, vy, hc);
+	} else {
+	  drawColumnSameY(textureIndex, texI, curX, vy, hc);
+	}	
+      }
+    }
   }
 }
+
 char sorted[8];
 char numSorted;
 char numTransparent;
