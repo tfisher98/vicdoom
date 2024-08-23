@@ -133,11 +133,11 @@ void __fastcall__ drawObjectInSector(char objIndex, signed char x_L, signed char
 
   char o = objO[objIndex];
   char objectType = getObjectType(o);
-  char animate = 0;
+  char fliptexture = 0;
   char textureIndex;
   int sx, vx;
-  signed char leftX, rightX, startX, endX, curX;
-  char texI;
+  signed char leftX, startX, endX, curX;
+  char texI, first=1;
 
   unsigned char w = getWidthFromHeight(texFrameWidthScale(objectType), hc);
   if (w == 0) return;
@@ -145,8 +145,8 @@ void __fastcall__ drawObjectInSector(char objIndex, signed char x_L, signed char
   if (objectType < 5) {
     textureIndex = p_enemy_get_texture(o);
     if (textureIndex & TEX_ANIMATE) {
-      animate = 1;
       textureIndex &= ~TEX_ANIMATE;
+      fliptexture = frame & 2;
     }
   } else {
     textureIndex = texFrameTexture(objectType);
@@ -154,39 +154,36 @@ void __fastcall__ drawObjectInSector(char objIndex, signed char x_L, signed char
          
   vx = objX[objIndex];
   sx = leftShift4ThenDiv(vx, vy); //sx = vx / (vy / HALFSCREENWIDTH);
-  if (sx > -64 && sx < 64) {
-    leftX = sx - w;
-    rightX = sx + w;
-    startX = leftX;
-    endX = rightX;
-    if (startX < -16) startX = -16; // -HALFSCREENWIDTH
-    if (endX > 16) endX = 16; // HALFSCREENWIDTH
-    if (startX < x_R && endX > x_L) {
-      char first = 1;
-      if (startX < endX) {
-	p_enemy_wasseenthisframe(o);
-      }
-      for (curX = startX; curX != endX; ++curX) {
-	if (testFilledWithY(curX, vy) < 0) continue;
-	
-	setFilled(curX, vy);
-	if (curX == 0) {
-	  typeAtCenterOfView = TYPE_OBJECT;
-	  itemAtCenterOfView = o;
-	}
-	texI = getObjectTexIndex(w, curX - leftX); //texI = TEXWIDTH * (2*(curX - leftX) + 1) / (4 * w);
-	if (animate) {
-	  // change the animation speed?
-	  if ((frame & 2) != 0) texI = (TEXWIDTH - 1) - texI;
-	}
-	if (first) {
-	  first = 0;
-	  drawColumn(textureIndex, texI, curX, vy, hc);
-	} else {
-	  drawColumnSameY(textureIndex, texI, curX, vy, hc);
-	}	
-      }
+  if (!(sx > -64 && sx < 64)) return; 
+
+  leftX = startX = sx - w;
+  endX = sx + w;
+  if (startX >= x_R || endX <= x_L) return;
+  
+  if (startX < x_L) startX = x_L;
+  if (endX > x_R) endX = x_R; 
+
+  p_enemy_wasseenthisframe(o);
+  
+  for (curX = startX; curX != endX; ++curX) {
+    if (testFilledWithY(curX, vy) < 0) continue;	
+    setFilled(curX, vy);
+    
+    if (curX == 0) {
+      typeAtCenterOfView = TYPE_OBJECT;
+      itemAtCenterOfView = o;
     }
+    
+    texI = getObjectTexIndex(w, curX - leftX); //texI = TEXWIDTH * (2*(curX - leftX) + 1) / (4 * w);
+    if (fliptexture)
+      texI = (TEXWIDTH - 1) ^ texI;
+    
+    if (first) {
+      first = 0;
+      drawColumn(textureIndex, texI, curX, vy, hc);
+    } else {
+      drawColumnSameY(textureIndex, texI, curX, vy, hc);
+    }    
   }
 }
 
