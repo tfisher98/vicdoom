@@ -14,16 +14,6 @@
 #include "p_enemy.h"
 #include "automap.h"
 
-extern char frame;
-extern char typeAtCenterOfView;
-extern char itemAtCenterOfView;
-extern signed char barrelAtCenterOfScreen;
-extern char playerSector;
-
-char spanStackSec[10];
-signed char spanStackL[10];
-signed char spanStackR[10];
-
 // TODO : this is in core_math.s ??! needs to be moved
 char __fastcall__ getObjectTexIndex(unsigned int halfWidth, unsigned int x);
 
@@ -40,6 +30,52 @@ void __fastcall__ setFilled(signed char col, unsigned int y);
 
 void __fastcall__ preTransformSectors(void);
 void __fastcall__ transformSectorToScreenSpace(char sectorIndex);
+
+// global variables referenced here
+extern char frame;
+extern char playerSector;
+extern char typeAtCenterOfView;
+extern char itemAtCenterOfView;
+extern signed char barrelAtCenterOfScreen;
+
+// stack of spans requiring additional traversal during screen drawing
+char spanStackSec[10];
+signed char spanStackL[10];
+signed char spanStackR[10];
+
+// depth-sorted solid objects within sector being drawn
+char objO[8];
+int objX[8];
+int objY[8];
+char sorted[8];
+char numSorted;
+
+// transparent objects within sector being drawn
+char numTransparent;
+char transO[12];
+int transX[12];
+int transY[12];
+signed char transSXL[12];
+signed char transSXR[12];
+
+
+#if DEBUG_SECTORLISTS
+int startSectorObjsPos;
+#endif
+
+// helper math function for w = h/texFrames[objectType].widthScale;
+unsigned char getWidthFromHeight(char ws, unsigned char h)
+{
+  switch (ws)
+  {
+  case 2: return h>>1;
+  case 3: return (h + (h>>2))>>2;
+  case 4: return h>>2;
+  case 5: return (h + (h>>1))>>3;
+  case 8: return h>>3;
+  }
+  return 0; // should not occur
+}
 
 void __fastcall__ drawWall(char sectorIndex, char curEdgeIndex, char nextEdgeIndex, signed char x_L, signed char x_R)
 {
@@ -93,38 +129,6 @@ void __fastcall__ drawWall(char sectorIndex, char curEdgeIndex, char nextEdgeInd
   }
 }
 
-signed char __fastcall__ drawDoor(char sectorIndex, char curEdgeIndex, char nextEdgeIndex, signed char x_L, signed char x_R)
-{
-  char edgeGlobalIndex = getEdgeIndex(sectorIndex, curEdgeIndex);
-
-  if (isDoorClosed(edgeGlobalIndex)) {
-    if ((x_L <= 0) && (x_R > 0) && testFilled(0) == 0x7f) {
-      typeAtCenterOfView = TYPE_DOOR;
-      itemAtCenterOfView = edgeGlobalIndex;
-    }    
-    drawWall(sectorIndex, curEdgeIndex, nextEdgeIndex, x_L, x_R);    
-    return x_R;
-  }
-  return x_L;
-}
-
-unsigned char getWidthFromHeight(char ws, unsigned char h)
-{
-  switch (ws)
-  {
-  case 2: return h>>1;
-  case 3: return (h + (h>>2))>>2;
-  case 4: return h>>2;
-  case 5: return (h + (h>>1))>>3;
-  case 8: return h>>3;
-  }
-  return 0; // should not occur
-}
-
-char objO[8];
-int objX[8];
-int objY[8];
-
 void __fastcall__ drawObjectInSector(char objIndex, signed char x_L, signed char x_R)
 {
   int vy = objY[objIndex];
@@ -158,8 +162,8 @@ void __fastcall__ drawObjectInSector(char objIndex, signed char x_L, signed char
 
   leftX = startX = sx - w;
   endX = sx + w;
-  if (startX >= x_R || endX <= x_L) return;
   
+  if (startX >= x_R || endX <= x_L) return;  
   if (startX < x_L) startX = x_L;
   if (endX > x_R) endX = x_R; 
 
@@ -187,13 +191,20 @@ void __fastcall__ drawObjectInSector(char objIndex, signed char x_L, signed char
   }
 }
 
-char sorted[8];
-char numSorted;
-char numTransparent;
+signed char __fastcall__ drawDoor(char sectorIndex, char curEdgeIndex, char nextEdgeIndex, signed char x_L, signed char x_R)
+{
+  char edgeGlobalIndex = getEdgeIndex(sectorIndex, curEdgeIndex);
 
-#if DEBUG_SECTORLISTS
-int startSectorObjsPos;
-#endif
+  if (isDoorClosed(edgeGlobalIndex)) {
+    if ((x_L <= 0) && (x_R > 0) && testFilled(0) == 0x7f) {
+      typeAtCenterOfView = TYPE_DOOR;
+      itemAtCenterOfView = edgeGlobalIndex;
+    }    
+    drawWall(sectorIndex, curEdgeIndex, nextEdgeIndex, x_L, x_R);    
+    return x_R;
+  }
+  return x_L;
+}
 
 void __fastcall__ drawObjectsInSector(char sectorIndex, signed char x_L, signed char x_R)
 {
@@ -299,12 +310,6 @@ signed char __fastcall__ ffeis(char curSec, signed char x_L)
   return -1;
 }
 
-char transO[12];
-int transX[12];
-int transY[12];
-signed char transSXL[12];
-signed char transSXR[12];
-
 void __fastcall__ queueTransparentObjects(signed char x_L, signed char x_R)
 {
   char i, type;
@@ -335,73 +340,55 @@ void processTransparentObjectAtCenterOfScreen(char o)
 
 void __fastcall__ drawTransparentObject(char transIndex)
 {
-  // perspective transform (see elsewhere for optimization)
-  //int h = (SCREENHEIGHT/16) * 512 / (vy/16);
   int vy = transY[transIndex];
-  //unsigned int h = div88(128, vy);
   unsigned int h = div128over(vy);
-  unsigned char hc;
+  unsigned char hc = (h < 128) ? h : 127;
+
   char o = transO[transIndex];
   char objectType = getObjectType(o);
   char textureIndex;
-  int sx;
-  signed char leftX;
-  signed char rightX;
-  signed char startX;
-  signed char endX;
-  signed char curX;
-  char texI;
-  char startY, height;
+  int sx, vx;
+  signed char leftX, startX, endX, curX, x_L, x_R;
+  char texI, startY, height;
+  char halfwidth=0, frameStartX=0;
   unsigned char w;
 
-  //w = h/texFrames[objectType].widthScale;
-  if (h < 128)
-  {
-    hc = h;
-  }
-  else
-  {
-    hc = 127;
-  }
   w = getWidthFromHeight(texFrameWidthScale(objectType), hc);
-  if (w > 0)
-  {
-     //sx = vx / (vy / HALFSCREENWIDTH);
-     int vx = transX[transIndex];
-     sx = leftShift4ThenDiv(vx, vy);
-     if (sx > -64 && sx < 64)
-     {
-       leftX = sx - w;
-       rightX = sx + w;
-       startX = leftX;
-       endX = rightX;
-       if (startX < -16) startX = -16;
-       if (endX > 16) endX = 16;
-       if (startX < transSXR[transIndex] && endX > transSXL[transIndex])
-       {
-          textureIndex = texFrameTexture(objectType);
-          startY = texFrameStartY(objectType);
-          height = texFrameHeight(objectType);
-          for (curX = startX; curX < endX; ++curX)
-          {
-             if (testFilledWithY(curX, vy) > 0)
-             {
-               if (curX == 0)
-               {
-                 processTransparentObjectAtCenterOfScreen(o);
-               }
-                // compensate for pixel samples being mid column
-                //texI = TEXWIDTH * (2*(curX - leftX) + 1) / (4 * w);
-                texI = getObjectTexIndex(w, curX - leftX);
-                if (texFrameWidth(objectType) != 16)
-                {
-                   texI = texFrameStartX(objectType) + (texI>>1);
-                }
-                drawColumnTransparent(textureIndex, startY, height, texI, curX, vy, hc);
-             }
-          }
-        }
-     }
+  if (w == 0) return;
+  
+  vx = transX[transIndex];
+  sx = leftShift4ThenDiv(vx, vy); //sx = vx / (vy / HALFSCREENWIDTH);
+
+  if (!(sx > -64 && sx < 64)) return; 
+
+  leftX = startX = sx - w;
+  endX = sx + w;
+
+  x_L = transSXL[transIndex];
+  x_R = transSXR[transIndex];
+  if (startX >= x_R || endX <= x_L) return;  
+  if (startX < x_L) startX = x_L;
+  if (endX > x_R) endX = x_R; 
+
+  if (startX <= 0 && endX > 0 && testFilledWithY(curX, vy) >= 0) {
+      processTransparentObjectAtCenterOfScreen(o);
+  }
+  
+  textureIndex = texFrameTexture(objectType);
+  startY = texFrameStartY(objectType);
+  height = texFrameHeight(objectType);
+  if (texFrameWidth(objectType) != 16) {
+    frameStartX = texFrameStartX(objectType);
+    halfwidth = 1;
+  }
+
+  for (curX = startX; curX != endX; ++curX) {
+    if (testFilledWithY(curX, vy) < 0) continue;	
+	  
+    texI = getObjectTexIndex(w, curX - leftX); //texI = TEXWIDTH * (2*(curX - leftX) + 1) / (4 * w);
+    if (halfwidth)
+      texI = frameStartX + (texI>>1);
+    drawColumnTransparent(textureIndex, startY, height, texI, curX, vy, hc);
   }
 }
 
@@ -410,12 +397,11 @@ void __fastcall__ drawTransparentObjects(void)
   signed char i;
   barrelAtCenterOfScreen = -1;
   // draw back to front
-  for (i = numTransparent-1; i >= 0; --i)
+  for (i = numTransparent-1; i != -1; --i)
   {
     drawTransparentObject(i);
   }
 }
-
 
 void __fastcall__ drawSpans(void)
 {
