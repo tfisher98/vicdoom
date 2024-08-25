@@ -517,23 +517,16 @@ boolean __fastcall__ P_CheckMissileRange(void)
 // returns false if the move is blocked.
 //
 
+// returns sector that would result from moving active object by move trydx,trydy
+// result is -1 if movment would cross an impassable wall
 char __fastcall__ try_move(int trydx, int trydy)
 {
-  // check the edges we can cross first
-  // if any of them teleport us, move
-  
   char thatSector;
   char i, ni;
   signed char v1x, v1y, v2x, v2y;
   signed char ex, ey;
-  int px, py;
-  long dot;
-  int height;
-  int edgeLen;
-  int edgeLen2;
-  int distance;
-  char edgeGlobalIndex;
-  char vertGlobalIndex, vert2GlobalIndex;
+  int px, py, dot, height, edgeLen, edgeLen2, distance;
+  char edgeGlobalIndex, vertGlobalIndex, vert2GlobalIndex;
   char curSector = getObjectSector(objIndex);
   char sectorToReturn = curSector;
   char secNumVerts = getNumVerts(curSector);
@@ -554,10 +547,11 @@ char __fastcall__ try_move(int trydx, int trydy)
     ey = v2y - v1y;
     // check if moving towards edge
     // dot = trydx*ey - trydy*ex;
-    fastMultiplySetup16x8e24(ey);
-    dot = fastMultiply16x8e24(trydx);
-    fastMultiplySetup16x8e24(ex);
-    dot -= fastMultiply16x8e24(trydy);
+    // TODO : this could be faster with an angle comparison
+    fastMultiplySetup16x8(ey);
+    dot = fastMultiply16x8(trydx);
+    fastMultiplySetup16x8(ex);
+    dot -= fastMultiply16x8(trydy);
     if (dot <= 0)
     {
       px = tx - (((short)v1x)<<8);
@@ -565,28 +559,26 @@ char __fastcall__ try_move(int trydx, int trydy)
       edgeGlobalIndex = getEdgeIndex(curSector, i);
       edgeLen = getEdgeLen(edgeGlobalIndex);
       //height = px * ey - py * ex;
-      fastMultiplySetup16x8e24(ey);
-      height = fastMultiply16x8e24(px) >> 8;
-      fastMultiplySetup16x8e24(ex);
-      height -= fastMultiply16x8e24(py) >> 8;
+      fastMultiplySetup16x8(ey);
+      height = fastMultiply16x8(px);
+      fastMultiplySetup16x8(ex);
+      height -= fastMultiply16x8(py);
 
       if (height < edgeLen)
       {
         fastMultiplySetup8x8(edgeLen);
         edgeLen2 = fastMultiply8x8(edgeLen);
 
-			  //distance = px * ex + py * ey;
-        fastMultiplySetup16x8e24(ex);
-        distance = fastMultiply16x8e24(px) >> 8;
-        fastMultiplySetup16x8e24(ey);
-        distance += fastMultiply16x8e24(py) >> 8;
+	//distance = px * ex + py * ey;
+        fastMultiplySetup16x8(ex);
+        distance = fastMultiply16x8(px);
+        fastMultiplySetup16x8(ey);
+        distance += fastMultiply16x8(py);
 
-			  // check we're within the extents of the edge
-			  thatSector = getOtherSector(edgeGlobalIndex, curSector);
-			  if (thatSector != 0xff && !isDoorClosed(edgeGlobalIndex))
-			  {
-          if (distance > edgeLen && distance < edgeLen2 - edgeLen)
-          {
+	// check we're within the extents of the edge
+	thatSector = getOtherSector(edgeGlobalIndex, curSector);
+	if (thatSector != 0xff && !isDoorClosed(edgeGlobalIndex)) {
+          if (distance > edgeLen && distance < edgeLen2 - edgeLen) {
             #if 0
             print3DigitNumToScreen(curSector, 0x1000 + 16*22);
             print3DigitNumToScreen(distance, 0x1000 + 16*22 + 4);
@@ -594,8 +586,7 @@ char __fastcall__ try_move(int trydx, int trydy)
             print3DigitNumToScreen(dot, 0x1000 + 16*22 + 12);
             print3DigitNumToScreen(height, 0x1000 + 16*22 + 16);
             #endif
-            if (height <= 0)
-            {
+            if (height <= 0) {
               return thatSector;
             }
             return curSector;
@@ -615,7 +606,7 @@ char __fastcall__ try_move(int trydx, int trydy)
           sectorToReturn = -1;
         }
       }
-	  }
+    }
   }
   return sectorToReturn;
 }
