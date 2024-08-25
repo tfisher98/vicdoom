@@ -280,9 +280,17 @@ void __fastcall__ drawObjectsInSector(char sectorIndex, signed char x_L, signed 
       char index = sorted[i];
       char type = getObjectType(objO[index]);
       p_enemy_add_thinker(objO[index]);
-      if (texFrameSolid(type))
-      {
+      if (texFrameSolid(type)) {
+	// immediately draw solid objects
 	drawObject(objO[index],objX[index],objY[index],x_L,x_R,0);
+      } else {
+	// queue transparent objects to draw back-to-front at end
+	transO[numTransparent] = objO[index];
+	transX[numTransparent] = objX[index];
+	transY[numTransparent] = objY[index];
+	transSXL[numTransparent] = x_L;
+	transSXR[numTransparent] = x_R;
+	++numTransparent;
       }
     }
   }
@@ -322,25 +330,6 @@ signed char __fastcall__ ffeis(char curSec, signed char x_L)
     }
   }
   return -1;
-}
-
-void __fastcall__ queueTransparentObjects(signed char x_L, signed char x_R)
-{
-  char i, type;
-  for (i = 0; i < numSorted; ++i)
-  {
-    char objIndex = sorted[i];
-    type = getObjectType(objO[objIndex]);
-    if (!texFrameSolid(type))
-    {
-      transO[numTransparent] = objO[objIndex];
-      transX[numTransparent] = objX[objIndex];
-      transY[numTransparent] = objY[objIndex];
-      transSXL[numTransparent] = x_L;
-      transSXR[numTransparent] = x_R;
-      ++numTransparent;
-    }
-  }
 }
 
 void __fastcall__ drawTransparentObjects(void)
@@ -449,8 +438,6 @@ void __fastcall__ drawSpans(void)
         curX = nextX;
         curEdge = nextEdge;
      }
-     
-     queueTransparentObjects(x_L, x_R);
   }
 
   drawTransparentObjects();
