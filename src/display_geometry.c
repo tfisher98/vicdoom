@@ -138,7 +138,7 @@ void __fastcall__ drawObject(char o, int vx, int vy, signed char x_L, signed cha
 
   char fliptexture = 0, halfwidth = 0, first = 1;
   char textureIndex, texI, startY, height, frameStartX = 0;
-  int sx;
+  int sx, u, du;
   signed char leftX, startX, endX, curX;
 
   if (w == 0) return;
@@ -176,10 +176,17 @@ void __fastcall__ drawObject(char o, int vx, int vy, signed char x_L, signed cha
     }
   }
 
+  // u = TEXWIDTH*(2*(startX-leftX)+1)/(4*w) = (TEXWIDTH/4)*(2*(startX-leftX)+1)*widthScale/h
+  //   = (TEXWIDTH/512)*(2*(startX-leftX)+1)*widthScale*yc
+  // du = TEXWIDTH*2/(4*w) = TEXWIDTH*widthScale/(2*h) = (TEXWIDTH/256)*widthScale*yc
+  u = getObjectTexIndex(w, startX - leftX) << 8;
+  du = div88(8,w); 
+  
   for (curX = startX; curX != endX; ++curX) {
     if (testFilledWithY(curX, vy) < 0) continue;
 
-    texI = getObjectTexIndex(w, curX - leftX); //texI = TEXWIDTH * (2*(curX - leftX) + 1) / (4 * w);
+    texI = u>>8;    
+    u += du;
     
     if (transparent) {
       if (halfwidth)
@@ -202,7 +209,7 @@ void __fastcall__ drawObject(char o, int vx, int vy, signed char x_L, signed cha
       } else {
 	drawColumnSameY(textureIndex, texI, curX, vy, hc);
       }
-    }    
+    }
   }
 }
 
