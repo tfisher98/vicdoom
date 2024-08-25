@@ -202,7 +202,7 @@ char __fastcall__ p_enemy_getKillPercentage(void)
 void __fastcall__ p_enemy_resetMap(void)
 {
   char i;
-  for (i = 0; i < MAX_MOBJ; ++i)
+  for (i = 0; i != MAX_MOBJ; ++i)
   {
     setMobjIndex(i);
     setMobjAllocated(0);
@@ -227,7 +227,7 @@ char __fastcall__ allocMobj(char o)
 //  {
 //    return -1;
 //  }
-  for (i = 0; i < MAX_MOBJ; ++i)
+  for (i = 0; i != MAX_MOBJ; ++i)
   {
     if (!mobjAllocated(i))
     {
@@ -266,48 +266,41 @@ void __fastcall__ p_enemy_startframe(void)
 {
   char i;
   thinkercap = 0;
-  for (i = 0; i < MAX_MOBJ; ++i)
-  {
-    setMobjIndex(i);
-    removeMobjFlags(MF_WASSEENTHISFRAME|MF_THOUGHTTHISFRAME);
-    if (mobjAllocated(i))
-    {
-      if (mobjTimeout() < 32)
-      {
-        p_enemy_add_thinker(objForMobj(i));
+  for (i = 0; i != MAX_MOBJ; ++i) {
+    if (mobjAllocated(i)) {
+      setMobjIndex(i);
+      removeMobjFlags(MF_WASSEENTHISFRAME|MF_THOUGHTTHISFRAME);
+      if (mobjTimeout() < 32) {
+	char o = objForMobj(i);
+	char t = getObjectType(o);
+	if (t < 5 || t == kOT_ImpShot) {
+	  addMobjFlags(MF_THOUGHTTHISFRAME);
+	  thinkers[thinkercap] = i;
+	  ++thinkercap;
+	}
       }
     }
   }
-
   newChaseDirThisFrame = 0;
 }
 
 void __fastcall__ p_enemy_add_thinker(char o)
 {
-  char t = getObjectType(o);
-  if (t < 5 || t == kOT_ImpShot)
-  {
-    char i = mobjForObj(o);
-    setMobjIndex(i);
-    if (!testMobjFlags(MF_THOUGHTTHISFRAME))
-    {
-      addMobjFlags(MF_THOUGHTTHISFRAME);
-      thinkers[thinkercap] = i;
-      ++thinkercap;
-    }
+  char i = mobjForObj(o);
+  setMobjIndex(i);
+  if (!testMobjFlags(MF_THOUGHTTHISFRAME)) {
+    addMobjFlags(MF_THOUGHTTHISFRAME);
+    thinkers[thinkercap] = i;
+    ++thinkercap;    
   }
 }
 
 void __fastcall__ p_enemy_wasseenthisframe(char o)
 {
-  char t = getObjectType(o);
-  if (t < 5 || t == kOT_ImpShot)
-  {
-    char i = mobjForObj(o);
-    setMobjIndex(i);
-    addMobjFlags(MF_WASSEENTHISFRAME);
-    setMobjTimeout(0);
-  }
+  char i = mobjForObj(o);
+  setMobjIndex(i);
+  addMobjFlags(MF_WASSEENTHISFRAME);
+  setMobjTimeout(0);
 }
 
 char __fastcall__ p_enemy_get_texture(char o)
@@ -365,7 +358,7 @@ void __fastcall__ p_enemy_single_think(char mobjIndex)
 void __fastcall__ p_enemy_think(void)
 {
   char i = 0;
-  while (i < thinkercap)
+  while (i != thinkercap)
   {
     char mobjIndex = thinkers[i];
     p_enemy_single_think(mobjIndex);

@@ -286,7 +286,9 @@ void __fastcall__ drawObjectsInSector(char sectorIndex, signed char x_L, signed 
     {
       char index = sorted[i];
       char type = getObjectType(objO[index]);
-      p_enemy_add_thinker(objO[index]);
+      if (type < 5 || type == kOT_ImpShot) {
+	p_enemy_add_thinker(objO[index]);
+      }
       if (texFrameSolid(type)) {
 	// immediately draw solid objects
 	drawObject(objO[index],objX[index],objY[index],x_L,x_R,0);
