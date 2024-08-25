@@ -129,34 +129,20 @@ void __fastcall__ drawWall(char sectorIndex, char curEdgeIndex, char nextEdgeInd
   }
 }
 
-void __fastcall__ drawObjectInSector(char objIndex, signed char x_L, signed char x_R)
+void __fastcall__ drawObject(char o, int vx, int vy, signed char x_L, signed char x_R, char transparent)
 {
-  int vy = objY[objIndex];
   unsigned int h = div128over(vy); // h = (SCREENHEIGHT/16) * 512 / (vy/16); 
   unsigned char hc = (h < 128) ? h : 127;
-
-  char o = objO[objIndex];
   char objectType = getObjectType(o);
-  char fliptexture = 0;
-  char textureIndex;
-  int sx, vx;
-  signed char leftX, startX, endX, curX;
-  char texI, first=1;
-
   unsigned char w = getWidthFromHeight(texFrameWidthScale(objectType), hc);
+
+  char fliptexture = 0, halfwidth = 0, first = 1;
+  char textureIndex, texI, startY, height, frameStartX = 0;
+  int sx;
+  signed char leftX, startX, endX, curX;
+
   if (w == 0) return;
-  
-  if (objectType < 5) {
-    textureIndex = p_enemy_get_texture(o);
-    if (textureIndex & TEX_ANIMATE) {
-      textureIndex &= ~TEX_ANIMATE;
-      fliptexture = frame & 2;
-    }
-  } else {
-    textureIndex = texFrameTexture(objectType);
-  }
-         
-  vx = objX[objIndex];
+
   sx = leftShift4ThenDiv(vx, vy); //sx = vx / (vy / HALFSCREENWIDTH);
   if (!(sx > -64 && sx < 64)) return; 
 
@@ -166,30 +152,60 @@ void __fastcall__ drawObjectInSector(char objIndex, signed char x_L, signed char
   if (startX >= x_R || endX <= x_L) return;  
   if (startX < x_L) startX = x_L;
   if (endX > x_R) endX = x_R; 
-
-  p_enemy_wasseenthisframe(o);
   
-  for (curX = startX; curX != endX; ++curX) {
-    if (testFilledWithY(curX, vy) < 0) continue;	
-    setFilled(curX, vy);
-    
-    if (curX == 0) {
-      typeAtCenterOfView = TYPE_OBJECT;
-      itemAtCenterOfView = o;
+  if (objectType < 5) {
+    p_enemy_wasseenthisframe(o);
+    textureIndex = p_enemy_get_texture(o);
+    if (textureIndex & TEX_ANIMATE) {
+      textureIndex &= ~TEX_ANIMATE;
+      fliptexture = frame & 2;
     }
-    
+  } else {
+    textureIndex = texFrameTexture(objectType);
+    if (transparent) {
+      startY = texFrameStartY(objectType);
+      height = texFrameHeight(objectType);
+      if (texFrameWidth(objectType) != 16) {
+	frameStartX = texFrameStartX(objectType);
+	halfwidth = 1;
+      }
+      if (startX <= 0 && endX > 0 && testFilledWithY(0, vy) >= 0) {
+	if (objectType == kOT_Barrel)	  
+	  barrelAtCenterOfScreen = o;
+      }
+    }
+  }
+
+  for (curX = startX; curX != endX; ++curX) {
+    if (testFilledWithY(curX, vy) < 0) continue;
+
     texI = getObjectTexIndex(w, curX - leftX); //texI = TEXWIDTH * (2*(curX - leftX) + 1) / (4 * w);
-    if (fliptexture)
-      texI = (TEXWIDTH - 1) ^ texI;
     
-    if (first) {
-      first = 0;
-      drawColumn(textureIndex, texI, curX, vy, hc);
+    if (transparent) {
+      if (halfwidth)
+	texI = frameStartX + (texI>>1);
+      drawColumnTransparent(textureIndex, startY, height, texI, curX, vy, hc);
     } else {
-      drawColumnSameY(textureIndex, texI, curX, vy, hc);
+      setFilled(curX, vy);
+      
+      if (curX == 0) {
+	typeAtCenterOfView = TYPE_OBJECT;
+	itemAtCenterOfView = o;
+      }
+
+      if (fliptexture)
+	texI = (TEXWIDTH - 1) ^ texI;
+      
+      if (first) {
+	first = 0;
+	drawColumn(textureIndex, texI, curX, vy, hc);
+      } else {
+	drawColumnSameY(textureIndex, texI, curX, vy, hc);
+      }
     }    
   }
 }
+
 
 signed char __fastcall__ drawDoor(char sectorIndex, char curEdgeIndex, char nextEdgeIndex, signed char x_L, signed char x_R)
 {
@@ -261,14 +277,12 @@ void __fastcall__ drawObjectsInSector(char sectorIndex, signed char x_L, signed 
     // draw
     for (i = 0; i < numSorted; ++i)
     {
-      char type;
-      char index;
-      index = sorted[i];
+      char index = sorted[i];
+      char type = getObjectType(objO[index]);
       p_enemy_add_thinker(objO[index]);
-      type = getObjectType(objO[index]);
       if (texFrameSolid(type))
       {
-        drawObjectInSector(index, x_L, x_R);
+	drawObject(objO[index],objX[index],objY[index],x_L,x_R,0);
       }
     }
   }
@@ -329,77 +343,13 @@ void __fastcall__ queueTransparentObjects(signed char x_L, signed char x_R)
   }
 }
 
-void processTransparentObjectAtCenterOfScreen(char o)
-{
-  char objectType = getObjectType(o);
-  if (objectType == kOT_Barrel)
-  {
-    barrelAtCenterOfScreen = o;
-  }
-}
-
-void __fastcall__ drawTransparentObject(char transIndex)
-{
-  int vy = transY[transIndex];
-  unsigned int h = div128over(vy);
-  unsigned char hc = (h < 128) ? h : 127;
-
-  char o = transO[transIndex];
-  char objectType = getObjectType(o);
-  char textureIndex;
-  int sx, vx;
-  signed char leftX, startX, endX, curX, x_L, x_R;
-  char texI, startY, height;
-  char halfwidth=0, frameStartX=0;
-  unsigned char w;
-
-  w = getWidthFromHeight(texFrameWidthScale(objectType), hc);
-  if (w == 0) return;
-  
-  vx = transX[transIndex];
-  sx = leftShift4ThenDiv(vx, vy); //sx = vx / (vy / HALFSCREENWIDTH);
-
-  if (!(sx > -64 && sx < 64)) return; 
-
-  leftX = startX = sx - w;
-  endX = sx + w;
-
-  x_L = transSXL[transIndex];
-  x_R = transSXR[transIndex];
-  if (startX >= x_R || endX <= x_L) return;  
-  if (startX < x_L) startX = x_L;
-  if (endX > x_R) endX = x_R; 
-
-  if (startX <= 0 && endX > 0 && testFilledWithY(curX, vy) >= 0) {
-      processTransparentObjectAtCenterOfScreen(o);
-  }
-  
-  textureIndex = texFrameTexture(objectType);
-  startY = texFrameStartY(objectType);
-  height = texFrameHeight(objectType);
-  if (texFrameWidth(objectType) != 16) {
-    frameStartX = texFrameStartX(objectType);
-    halfwidth = 1;
-  }
-
-  for (curX = startX; curX != endX; ++curX) {
-    if (testFilledWithY(curX, vy) < 0) continue;	
-	  
-    texI = getObjectTexIndex(w, curX - leftX); //texI = TEXWIDTH * (2*(curX - leftX) + 1) / (4 * w);
-    if (halfwidth)
-      texI = frameStartX + (texI>>1);
-    drawColumnTransparent(textureIndex, startY, height, texI, curX, vy, hc);
-  }
-}
-
 void __fastcall__ drawTransparentObjects(void)
 {
   signed char i;
   barrelAtCenterOfScreen = -1;
   // draw back to front
-  for (i = numTransparent-1; i != -1; --i)
-  {
-    drawTransparentObject(i);
+  for (i = numTransparent-1; i != -1; --i) {
+    drawObject(transO[i],transX[i],transY[i],transSXL[i],transSXR[i],1);
   }
 }
 
