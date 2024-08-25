@@ -136,8 +136,8 @@ void __fastcall__ drawObject(char o, int vx, int vy, signed char x_L, signed cha
   char objectType = getObjectType(o);
   unsigned char w = getWidthFromHeight(texFrameWidthScale(objectType), hc);
 
-  char fliptexture = 0, halfwidth = 0, first = 1;
-  char textureIndex, texI, startY, height, frameStartX = 0;
+  char fliptexture = 0, first = 1;
+  char textureIndex, texI, startY, height;
   int sx, u, du;
   signed char leftX, startX, endX, curX;
 
@@ -165,10 +165,6 @@ void __fastcall__ drawObject(char o, int vx, int vy, signed char x_L, signed cha
     if (transparent) {
       startY = texFrameStartY(objectType);
       height = texFrameHeight(objectType);
-      if (texFrameWidth(objectType) != 16) {
-	frameStartX = texFrameStartX(objectType);
-	halfwidth = 1;
-      }
       if (startX <= 0 && endX > 0 && testFilledWithY(0, vy) >= 0) {
 	if (objectType == kOT_Barrel)	  
 	  barrelAtCenterOfScreen = o;
@@ -179,8 +175,17 @@ void __fastcall__ drawObject(char o, int vx, int vy, signed char x_L, signed cha
   // u = TEXWIDTH*(2*(startX-leftX)+1)/(4*w) = (TEXWIDTH/4)*(2*(startX-leftX)+1)*widthScale/h
   //   = (TEXWIDTH/512)*(2*(startX-leftX)+1)*widthScale*yc
   // du = TEXWIDTH*2/(4*w) = TEXWIDTH*widthScale/(2*h) = (TEXWIDTH/256)*widthScale*yc
-  u = getObjectTexIndex(w, startX - leftX) << 8;
+  texI = getObjectTexIndex(w, startX - leftX);
   du = div88(8,w); 
+  if (transparent && (texFrameWidth(objectType) != 16)) { // half width texture with offset
+    texI = texFrameStartX(objectType) + (texI>>1);
+    du = du>>1;
+  }
+  if (fliptexture) {
+    texI = (TEXWIDTH - 1) ^ texI;
+    du = -du;
+  }
+  u = texI << 8;
   
   for (curX = startX; curX != endX; ++curX) {
     if (testFilledWithY(curX, vy) < 0) continue;
@@ -189,8 +194,6 @@ void __fastcall__ drawObject(char o, int vx, int vy, signed char x_L, signed cha
     u += du;
     
     if (transparent) {
-      if (halfwidth)
-	texI = frameStartX + (texI>>1);
       drawColumnTransparent(textureIndex, startY, height, texI, curX, vy, hc);
     } else {
       setFilled(curX, vy);
@@ -199,9 +202,6 @@ void __fastcall__ drawObject(char o, int vx, int vy, signed char x_L, signed cha
 	typeAtCenterOfView = TYPE_OBJECT;
 	itemAtCenterOfView = o;
       }
-
-      if (fliptexture)
-	texI = (TEXWIDTH - 1) ^ texI;
       
       if (first) {
 	first = 0;
