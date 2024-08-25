@@ -33,6 +33,7 @@ enum EObjType
 #define TYPE_DOOR 1
 #define TYPE_OBJECT 2
 #define TYPE_SWITCH 3
+#define TYPE_BARREL 4
 
 #define EDGE_TYPE_MASK 0xC0
 #define EDGE_PROP_MASK 0x38

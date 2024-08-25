@@ -160,7 +160,6 @@ char clev = 0;
 // TODO : signed char distAtCenterOfView
 char typeAtCenterOfView;
 char itemAtCenterOfView;
-signed char barrelAtCenterOfScreen = -1;
 
 unsigned char openDoors[4];
 char doorOpenTime[4];
@@ -1147,9 +1146,9 @@ void __fastcall__ updateWeapons(char keys)
 
       playSound(damageSounds[weapon]);
 
-      if (barrelAtCenterOfScreen != -1)
+      if (typeAtCenterOfView == TYPE_BARREL)
       {
-        addExplodingBarrel(barrelAtCenterOfScreen);
+        addExplodingBarrel(itemAtCenterOfView);
       }
       else if (typeAtCenterOfView == TYPE_OBJECT)
       {
@@ -1335,7 +1334,6 @@ nextLevel:
   playera = getPlayerSpawnAngle();
   playerSector = getPlayerSpawnSector();
   endLevel = 0;
-  barrelAtCenterOfScreen = -1;
   explodingBarrelsObject[0] = -1;
   explodingBarrelsObject[1] = -1;
   explodingBarrelsObject[2] = -1;

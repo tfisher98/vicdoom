@@ -36,7 +36,6 @@ extern char frame;
 extern char playerSector;
 extern char typeAtCenterOfView;
 extern char itemAtCenterOfView;
-extern signed char barrelAtCenterOfScreen;
 
 // stack of spans requiring additional traversal during screen drawing
 char spanStackSec[10];
@@ -165,13 +164,11 @@ void __fastcall__ drawObject(char o, int vx, int vy, signed char x_L, signed cha
     if (transparent) {
       startY = texFrameStartY(objectType);
       height = texFrameHeight(objectType);
-      if (startX <= 0 && endX > 0 && testFilledWithY(0, vy) >= 0) {
-	if (objectType == kOT_Barrel)	  
-	  barrelAtCenterOfScreen = o;
-      }
     }
   }
 
+  // TODO : current approach sometimes produces wrong last texture column
+  //   (bad rounding/too much accumulated error)
   // u = TEXWIDTH*(2*(startX-leftX)+1)/(4*w) = (TEXWIDTH/4)*(2*(startX-leftX)+1)*widthScale/h
   //   = (TEXWIDTH/512)*(2*(startX-leftX)+1)*widthScale*yc
   // du = TEXWIDTH*2/(4*w) = TEXWIDTH*widthScale/(2*h) = (TEXWIDTH/256)*widthScale*yc
@@ -180,8 +177,7 @@ void __fastcall__ drawObject(char o, int vx, int vy, signed char x_L, signed cha
   if (transparent && (texFrameWidth(objectType) != 16)) { // half width texture with offset
     texI = texFrameStartX(objectType) + (texI>>1);
     du = du>>1;
-  }
-  if (fliptexture) {
+  } else if (fliptexture) {
     texI = (TEXWIDTH - 1) ^ texI;
     du = -du;
   }
@@ -190,19 +186,23 @@ void __fastcall__ drawObject(char o, int vx, int vy, signed char x_L, signed cha
   for (curX = startX; curX != endX; ++curX) {
     if (testFilledWithY(curX, vy) < 0) continue;
 
+    if (curX == 0) {
+      if (!transparent) {
+	itemAtCenterOfView = o;
+	typeAtCenterOfView = TYPE_OBJECT;
+      } else if (objectType == kOT_Barrel) {
+	itemAtCenterOfView = o;
+	typeAtCenterOfView = TYPE_BARREL;
+      }
+    }
+    
     texI = u>>8;    
     u += du;
     
     if (transparent) {
       drawColumnTransparent(textureIndex, startY, height, texI, curX, vy, hc);
     } else {
-      setFilled(curX, vy);
-      
-      if (curX == 0) {
-	typeAtCenterOfView = TYPE_OBJECT;
-	itemAtCenterOfView = o;
-      }
-      
+      setFilled(curX, vy);            
       if (first) {
 	first = 0;
 	drawColumn(textureIndex, texI, curX, vy, hc);
@@ -342,7 +342,6 @@ signed char __fastcall__ ffeis(char curSec, signed char x_L)
 void __fastcall__ drawTransparentObjects(void)
 {
   signed char i;
-  barrelAtCenterOfScreen = -1;
   // draw back to front
   for (i = numTransparent-1; i != -1; --i) {
     drawObject(transO[i],transX[i],transY[i],transSXL[i],transSXR[i],1);
