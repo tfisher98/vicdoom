@@ -338,13 +338,11 @@ char vertGlobalIndex, vert2GlobalIndex;
 char dgz, dle;
 char reversedEdge;
 
-typedef enum
-{
-  kPOR_Nada,
-  kPOR_Wall,
-  kPOR_Sector
-}
-EPushOutResult;
+// EPushOutResult enums
+#define kPOR_Nada 0
+#define kPOR_Wall 1
+#define kPOR_Sector 2
+#define EPushOutResult char
 
 char totalCheckedEdges;
 
@@ -1225,33 +1223,6 @@ int main()
   // needed for clearScreen
   load_data_file("phicode");
 
-  // clear screen
-  clearScreen();
-  cputsxy(0, 1, "R_Init: Init DOOM");
-  cputsxy(0, 2, "refresh daemon...");
-
-  load_data_file("psounds");
-  load_data_file("plowcode");
-
-  bordercolor(COLOR_RED);
-
-  load_data_file("pstackcode");
-  
-  playSoundInitialize(); // takes over IRQ so now its our IRQ not kernal
-  
-  generateMulTab();
-  load_data_file("psluts");
-  load_data_file("ptextures");
-
-  POKE(0xd018,25); // unshadowed : charset at $2000, screen at $0400
-  POKE(0xd016,0x18); // MC mode
-  POKE(0xd022,COLOR_YELLOW);
-  POKE(0xd023,COLOR_ORANGE);
-  
-start:
-  playMusic("pe1m9mus");
-  bordercolor(COLOR_BLUE);
-  
   // processor port 1 :
   // bit 0 : cpu color bank
   // bit 1 : vic color bank
@@ -1259,9 +1230,34 @@ start:
   // bit 3-5 : cassette write/sense/motor
   // bit 6 : capslock
   POKE(0x01,4); // VIC, CPU both use color bank 0, custom characters 
+  
+  // clear screen
+  clearScreen();
+  cputsxy(0, 1, "R_Init: Init DOOM");
+  cputsxy(0, 2, "refresh daemon...");
 
+  load_data_file("psounds");
+  load_data_file("plowcode");
+  load_data_file("pstackcode");
+  
+  playSoundInitialize(); // takes over IRQ so now its our IRQ not kernal
+  
+  generateMulTab();
+  load_data_file("psluts");
+  load_data_file("ptextures");
+  
+start:
+  bordercolor(COLOR_BLUE);
+  playMusic("pe1m9mus");
+  
   setUpScreenForBitmap();
   setUpScreenForMenu();
+  
+  POKE(0x01,4); // VIC, CPU both use color bank 0, custom characters 
+  POKE(0xd018,25); // unshadowed : charset at $2000, screen at $0400
+  POKE(0xd016,0x18); // MC mode
+  POKE(0xd022,COLOR_YELLOW);
+  POKE(0xd023,COLOR_ORANGE);
   
   runMenu(0);
   level = 1;
