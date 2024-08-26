@@ -15,7 +15,7 @@ extern signed char health;
 void __fastcall__ printCentered(char *str, char y)
 {
   char len = strlen(str);
-  cputsxy(11 - len/2, y, str);
+  cputsxy(20 - len/2, y, str);
 }
 
 void __fastcall__ load_full_text_screen(char *fname)
