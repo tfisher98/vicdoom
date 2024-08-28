@@ -15,7 +15,6 @@
 	.export     _copyToPrimaryBuffer
 	.export     _clearFilled
 	.export     _testFilled
-	.export     _testFilledWithY
 	.export     _setFilled
 
   .import _fastMultiplySetup16x8
@@ -47,10 +46,8 @@ height = $49
 tmasktab:
 .byte	$C0, $30, $0C, $03
 
-filled_hi:
+filled:
 .res 32, 0 			; SCREENWIDTH
-filled_lo:
-.res 32, 0			; SCREENWIDTH
 
 shiftcode:
 
@@ -93,11 +90,10 @@ nop
 
 .proc _clearFilled: near
 
-lda #$7f
+lda #$0
 ldx #31 			; SCREENWIDTH-1
 keepclearing:
-sta filled_hi, x
-sta filled_lo, x
+sta filled, x
 dex
 bpl keepclearing
 rts
@@ -109,47 +105,25 @@ rts
 clc
 adc #16			; HALFSCREENWIDTH
 tax	
-lda filled_hi, x
+lda filled, x
+ldx #0				; TWF ??? should be unneeded ???
 rts
 
 .endproc
 
 .proc _setFilled : near
 
-; AX holds y
+; A holds h
 ; TOS holds x
 
-sta tmp
+tax
 ldy #0
 lda (sp),y
 clc
 adc #16			; HALFSCREENWIDTH
 tay
-lda tmp
-sta filled_lo,y
 txa
-sta filled_hi,y
-jmp incsp1
-
-.endproc
-
-.proc _testFilledWithY: near
-
-; AX holds y
-; TOS holds x
-
-sta tmp
-stx tmp+1
-ldy #0
-lda (sp),y
-clc
-adc #16			; HALFSCREENWIDTH
-tay
-sec
-lda filled_lo,y
-sbc tmp
-lda filled_hi,y
-sbc tmp+1
+sta filled,y
 jmp incsp1
 
 .endproc

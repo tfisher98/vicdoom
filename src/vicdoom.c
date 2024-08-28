@@ -80,7 +80,7 @@
 
 #pragma staticlocals(on)
 
-char __fastcall__ testFilled(signed char col);
+unsigned char __fastcall__ testFilled(signed char col);
 
 
 void __fastcall__ setCameraAngle(unsigned char a);
@@ -1081,7 +1081,7 @@ void __fastcall__ updateWeapons(char keys)
     if (weapon == 0)
     {
       // fist
-      if (testFilled(0) < 4)
+      if (testFilled(0) > 32)
       {
         damage = 1;
       }
@@ -1093,7 +1093,7 @@ void __fastcall__ updateWeapons(char keys)
     else if (weapon == 1)
     {
       // chainsaw
-      if (testFilled(0) < 4)
+      if (testFilled(0) > 32)
       {
         damage = 1;
       }
@@ -1152,7 +1152,7 @@ void __fastcall__ updateWeapons(char keys)
       {
         damage = getDamage();
         // shotgun: if close, boost damage
-        if (weapon == 3 && testFilled(0) < 4)
+        if (weapon == 3 && testFilled(0) > 32)
         {
           damage += 4;
         }
@@ -1417,7 +1417,7 @@ nextLevel:
 
       if (keys & KEY_FORWARD)
       {
-        if (!(testFilled(0) < 4 && typeAtCenterOfView == TYPE_OBJECT))
+        if (!(testFilled(0) > 32 && typeAtCenterOfView == TYPE_OBJECT))
         {
           playerx += (sa<<1);
           playery += (ca<<1);
@@ -1452,7 +1452,7 @@ nextLevel:
       if (keys & KEY_USE)
       {
         // tried to open a door (pressed K)
-        if (testFilled(0) < 4)
+        if (testFilled(0) > 32)
         {
             if (typeAtCenterOfView == TYPE_DOOR)
             {
