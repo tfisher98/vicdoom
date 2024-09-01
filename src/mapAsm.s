@@ -75,6 +75,9 @@
 
 .export _playerOverlapsEdge
 
+.importzp vertexCount, vertexCounter, vertexCounterPP, x_L, x_R, outsideSector
+.importzp xToTransform, yToTransform, cosa, sina, cameraX, cameraY, PRODUCT	
+
 .include "src/levels/e1m1.s"
 
 .segment "CODE"
@@ -103,21 +106,6 @@ xfvertScreenX:
 .res 8, 0
 
 NUMSEC = 64
-
-vertexCount = $60
-vertexCounter = $61
-vertexCounterPP = $62
-x_L = $63
-x_R = $65
-outsideSector = $67
-; see logMathAsm (keep in sync)
-xToTransform = $68
-yToTransform = $6A
-cosa = $51
-sina = $52
-cameraX = $57
-cameraY = $59
-PRODUCT = $5e
 
 .proc _getScreenX: near
 tay

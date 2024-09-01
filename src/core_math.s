@@ -25,9 +25,17 @@
 .export _fastMultiply16x8e24
 
 .export _sqrt24
-	
-.importzp sp
-.importzp sreg
+
+;; cc65 zeropage
+.importzp sp, sreg
+
+;; zeropage used locally -- candidate for consolidation
+.importzp tmple, tmps, tmp
+
+;; zeropage used externally
+.importzp savex, angle, cosa, sina, cameraX, cameraY
+.importzp T1, T2, PRODUCT
+.importzp xToTransform, yToTransform
 
 .segment "LUTS"
 
@@ -80,17 +88,6 @@ sintab:
 
 .segment "CODE"
 
-; unused ZP
-tmple = $40
-tmps = $41
-tmp = $42
-savex = $4C
-angle = $50
-cosa = $51
-sina = $52
-cameraX = $57
-cameraY = $59
-
 .macro loadaxfromstack offs
 	ldy #offs
 	lax (sp),y
@@ -102,7 +99,7 @@ cameraY = $59
 	inc sp
 	inc sp
 .endmacro
-	
+
 .macro negate_ax
 	clc
  	eor	#$FF
@@ -135,12 +132,12 @@ cameraY = $59
 
 ;;;  optimized version : average 55 cycles
 ;;;  code structure chosen based on branch frequency 
- .proc log2:near
+.proc log2:near
  	sta tmple
  	txa
  	beq shiftup
  	ldx #0
- shiftdown:
+shiftdown:
  	lsr
  	beq finishedshifting
  	ror tmple
@@ -150,21 +147,21 @@ cameraY = $59
  	ror tmple
  	inx
  	bne shiftdown 		; always taken
- shiftup2: 			
+shiftup2: 			
  	dex
  	asl tmple
  	rol
  	bne finishedshifting
- shiftup:
+shiftup:
  	dex
  	asl tmple
  	rol
  	beq shiftup2
- finishedshifting:
+finishedshifting:
  	ldy tmple
  	lda log2tab,y
  	rts
- .endproc
+.endproc
 	
 ; ---------------------------------------------------------------
 ; unsigned int __near__ __fastcall__ exp2 (unsigned int x)
@@ -261,10 +258,6 @@ done:
 ;
 ; x = x*cosa - y*sina
 ; y = x*sina + y*cosa
-
-; zero page vars (see mapAsm - keep in sync)
-xToTransform = $68
-yToTransform = $6A
 
 .proc _transformxy: near
 
@@ -543,14 +536,6 @@ square2_hi:
 .res $200, 0
 
 .segment "CODE"
-
-; misc numeric work area and accum #1 (according to the PRG)
-; at $57-$66 on the ZP
-; safe to use $5b up (see usage above)
-
-T1 = $5b
-T2 = $5c
-PRODUCT = $5e
 
 ; only touches A
 _fastMultiplySetup8x8:
