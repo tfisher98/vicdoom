@@ -78,8 +78,12 @@
 .importzp vertexCount, vertexCounter, vertexCounterPP, x_L, x_R, outsideSector
 .importzp xToTransform, yToTransform, cosa, sina, cameraX, cameraY, PRODUCT	
 
+.if .version=531
+.include "levels/e1m1.s"
+.else
 .include "src/levels/e1m1.s"
-
+.endif
+	
 .segment "CODE"
 
 doorStatus:

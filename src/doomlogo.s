@@ -6,7 +6,11 @@
 bitmap = $2200			
 
 logo:
+.if .version=531
+.include "doomlogo.inc"
+.else
 .include "src/doomlogo.inc"
+.endif
 
 _drawLogo:
 

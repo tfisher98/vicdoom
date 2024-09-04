@@ -1,5 +1,10 @@
 .setcpu "6502"
 .autoimport on
+
+.if .version=531
+.feature force_range
+.endif
+	
 .import addysp
 .importzp sp
 .export _automap_draw

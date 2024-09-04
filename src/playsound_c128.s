@@ -28,7 +28,12 @@ irqContinue = $ff33
 ; status byte is [on/off:1][voice:2][timeToNextEvent:5]
 
 .segment "MUSIC"
+
+.if .version=531
+.include "levels/e1m1mus.s"
+.else
 .include "src/levels/e1m1mus.s"
+.endif	
 
 .segment "LOWCODE"
 

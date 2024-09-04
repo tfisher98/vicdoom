@@ -1,3 +1,7 @@
+.if .version=531
+.feature force_range
+.endif
+	
 .segment "MAPDATA"
 ; sector data
 secVerts:

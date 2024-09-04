@@ -1,5 +1,10 @@
 .setcpu "6502X"
 .autoimport	on
+
+.if .version=531
+.feature force_range
+.endif
+	
 .export log2
 .export exp2
 .export _div88
