@@ -1,4 +1,4 @@
-.setcpu	"6502"
+.setcpu	"6502X"
 .autoimport	on
 .importzp sp
 .export _preTransformSectors
@@ -112,438 +112,362 @@ xfvertScreenX:
 NUMSEC = 64
 
 .proc _getScreenX: near
-tay
-lda xfvertScreenX,y
-rts
+	tay
+	lda xfvertScreenX,y
+	rts
 .endproc
 
 .proc _getTransformedX: near
-tay
-lda xfvertXhi,y
-tax
-lda xfvertXlo,y
-rts
+	; A - vertexIndex
+	tay
+	ldx xfvertXhi,y
+	lda xfvertXlo,y
+	rts
 .endproc
 
 .proc _getTransformedY: near
-tay
-lda xfvertYhi,y
-tax
-lda xfvertYlo,y
-rts
+	; A - vertexIndex
+	tay
+	ldx xfvertYhi,y
+	lda xfvertYlo,y
+	rts
 .endproc
 
 .export clampIntToChar
-clampIntToChar:
-
-; x high, a low
-tay
-txa
-bpl sxpos
-cmp #$ff
-beq :+
-lda #$c0
-rts
+.proc clampIntToChar: near
+	; x high, a low
+	tay
+	txa
+	bpl sxpos
+	cmp #$ff
+	beq :+
+	lda #$c0
+	rts
 :
-tya
-cmp #$c0
-bcs clipdone
-lda #$c0
-rts
-
+	tya
+	cmp #$c0
+	bcs clipdone
+	lda #$c0
+	rts
+	
 sxpos:
-cmp #0
-beq :+
-lda #$3f
-rts
+	cmp #0
+	beq :+
+	lda #$3f
+	rts
 :
-tya
-cmp #$3f
-bcc clipdone
-lda #$3f
-
+	tya
+	cmp #$3f
+	bcc clipdone
+	lda #$3f
 clipdone:
-rts
-
-
-edgeIndex = $80
-sectorIndex = $81
-numberOfVerts = $82
+	rts
+.endproc
+	
+.importzp edgeIndex, sectorIndex, numberOfVerts
 
 .proc _getNumVerts : near
-
-; A - sectorIndex
-
-tay
-lda secNumVerts,y
-rts
-
+	; A - sectorIndex
+	tay
+	lda secNumVerts,y
+	rts
 .endproc
 
 
 .proc getSectorVertexXY : near
-
-; A - vertexIndex
-; X - sectorIndex
-
-sta edgeIndex
-
-txa
-asl
-asl
-asl
-sta modify+1 ; point to the correct sector verts - requires page alignment!
-lda #0
-adc #>secVerts
-sta modify+2
-
-ldy edgeIndex
+	; A - vertexIndex
+	; X - sectorIndex
+	sta edgeIndex
+	txa
+	asl
+	asl
+	asl
+	sta modify+1 ; point to the correct sector verts - requires page alignment!
+	lda #0
+	adc #>secVerts
+	sta modify+2	
+	ldy edgeIndex
 modify:
-lda secVerts, y
-tay
-lda vertX,y
-tax
-lda vertY,y
-tay
-
-rts
-
+	lda secVerts, y
+	tay
+	lda vertX,y
+	tax
+	lda vertY,y
+	tay	
+	rts
 .endproc
 
 .proc getVertexIndex: near
-
-; A - sectorIndex
-; X - vertexIndex
-
-asl
-asl
-asl
-sta modify+1
-lda #>secVerts
-adc #0
-sta modify+2
-
+	; A - sectorIndex
+	; X - vertexIndex	
+	asl
+	asl
+	asl
+	sta modify+1
+	lda #>secVerts
+	adc #0
+	sta modify+2
 modify:
-lda secVerts,x
-
-rts
-
+	lda secVerts,x
+	rts
 .endproc
 
 .proc _getVertexIndex : near
-
-; params:
-; A - vertexIndex
-; TOS - sectorIndex
-
-tax
-ldy #0
-lda (sp),y
-jsr getVertexIndex
-jmp incsp1
-
+	; params:
+	; A - vertexIndex
+	; TOS - sectorIndex	
+	tax
+	ldy #0
+	lda (sp),y
+	jsr getVertexIndex
+	jmp incsp1
 .endproc
 
 .proc _getVertexX : near
-
-; params:
-; A - global vertexIndex
-
-tay
-lda vertX,y
-rts
-
+	; params:
+	; A - global vertexIndex
+	tay
+	lda vertX,y
+	rts
 .endproc
 
 .proc _getVertexY : near
-
-; params:
-; A - global vertexIndex
-
-tay
-lda vertY,y
-rts
-
+	; params:
+	; A - global vertexIndex
+	tay
+	lda vertY,y
+	rts
 .endproc
 
-
-
 .proc getEdgeIndex : near
-
-; A - edge index
-; X = sector index
-
-sta edgeIndex
-txa
-
-asl
-asl
-asl
-sta modify+1
-lda #0
-adc #>secEdges
-sta modify+2
-
-ldy edgeIndex
+	; A - edge index
+	; X = sector index
+	sta edgeIndex
+	txa
+	asl
+	asl
+	asl
+	sta modify+1
+	lda #0
+	adc #>secEdges
+	sta modify+2
+	ldy edgeIndex
 modify:
-lda secEdges,y
-rts
-
+	lda secEdges,y
+	rts
 .endproc
 
 .proc _getEdgeIndex : near
-
-; params:
-; A - edgeIndex
-; TOS - sectorIndex
-
-sta edgeIndex
-ldy #0
-lda (sp),y
-
-asl
-asl
-asl
-sta modify+1
-lda #0
-adc #>secEdges
-sta modify+2
-
-ldy edgeIndex
+	; params:
+	; A - edgeIndex
+	; TOS - sectorIndex
+	sta edgeIndex
+	ldy #0
+	lda (sp),y
+	asl
+	asl
+	asl
+	sta modify+1
+	lda #0
+	adc #>secEdges
+	sta modify+2
+	ldy edgeIndex
 modify:
-lda secEdges,y
-
-jmp incsp1
-
+	lda secEdges,y	
+	jmp incsp1
 .endproc
 
 .proc _getEdgeTexture : near
-
-; params:
-; A - global edgeIndex
-
-tay
-lda edgeTex,y
-rts
-
+	; params:
+	; A - global edgeIndex
+	tay
+	lda edgeTex,y
+	rts
 .endproc
 
 .proc _setEdgeTexture : near
-
-; params:
-; TOS - global edgeIndex
-; A - texture
-
-tax
-
-ldy #0
-lda (sp),y
-tay
-
-txa
-sta edgeTex,y
-
-jmp incsp1
-
+	; params:
+	; TOS - global edgeIndex
+	; A - texture
+	tay
+	ldx #0
+	lax (sp,x)
+	tya
+	sta edgeTex,x
+	jmp incsp1
 .endproc
 
 .proc _getEdgeLen : near
-
-; params:
-; A - global edgeIndex
-
-tay
-lda edgeLen,y
-rts
-
+	; params:
+	; A - global edgeIndex
+	tay
+	lda edgeLen,y
+	rts
 .endproc
 
 .proc _getOtherSector : near
-
-; params:
-; A - sector index
-; TOS - global edgeIndex
-
-sta sectorIndex
-ldy #0
-lda (sp),y
-tay
-
-lda edgeSec1,y
-cmp #$ff
-beq end
-cmp sectorIndex
-bne end
-lda edgeSec2,y
-
+	; params:
+	; A - sector index
+	; TOS - global edgeIndex
+	sta sectorIndex
+	ldy #0
+	lda (sp),y
+	tay
+	lda edgeSec1,y
+	cmp #$ff
+	beq end
+	cmp sectorIndex
+	bne end
+	lda edgeSec2,y
 end:
-jmp incsp1
-
+	jmp incsp1
 .endproc
 
 .proc getOtherSector : near
-
-; params:
-; A - global edgeIndex
-; X - sectorIndex
-
-stx sectorIndex
-tax
-
-lda edgeSec1,x
-cmp #$ff
-beq end
-cmp sectorIndex
-bne end
-lda edgeSec2,x
-
+	; params:
+	; A - global edgeIndex
+	; X - sectorIndex
+	stx sectorIndex
+	tax
+	lda edgeSec1,x
+	cmp #$ff
+	beq end
+	cmp sectorIndex
+	bne end
+	lda edgeSec2,x
 end:
-rts
-
+	rts
 .endproc
 
 .proc getNextEdge: near
-
-; X - edgeIndex
-; Y - sectorIndex
-
-lda secNumVerts,y
-sta numberOfVerts
-inx
-txa
-cmp numberOfVerts
-bne done
-lda #0
+	; X - edgeIndex
+	; Y - sectorIndex
+	lda secNumVerts,y
+	sta numberOfVerts
+	inx
+	txa
+	cmp numberOfVerts
+	bne done
+	lda #0
 done:
-rts
-
+	rts
 .endproc
 
 .proc _getNextEdge : near
-
-; params:
-; A - edgeIndex
-; TOS - sectorIndex
-
-tax
-ldy #0
-lda (sp),y
-tay
-jsr getNextEdge
+	; params:
+	; A - edgeIndex
+	; TOS - sectorIndex
+	tax
+	ldy #0
+	lda (sp),y
+	tay
+	jsr getNextEdge
 done:
-jmp incsp1
-
+	jmp incsp1
 .endproc
 
 
 .segment "CODE"
-
 .proc _getNumObjects : near
-
-lda numObj
-rts
-
+	lda numObj
+	rts
 .endproc
 
 objectIndex:
 .byte 0
 
 .proc _getObjectSector : near
-
-tay
-lda objSec,y
-ldx #0
-rts
-
+	tay
+	lda objSec,y
+	ldx #0
+	rts
 .endproc
 
 .proc _getObjectX : near
-
-tay
-lda objXhi,y
-tax
-lda objXlo,y
-rts
-
+	tay
+	ldx objXhi,y
+	lda objXlo,y
+	rts
 .endproc
 
-_setObjectX:
-pha
-ldy #0
-lda (sp),y
-tay
-pla
-sta objXlo,y
-txa
-sta objXhi,y
-jmp incsp1
+.proc _setObjectX: near
+	; A,X - ObjectX
+	; TOS - object
+	pha
+	ldy #0
+	lda (sp),y
+	tay
+	pla
+	sta objXlo,y
+	txa
+	sta objXhi,y
+	jmp incsp1
+.endproc
 
-_setObjectY:
-pha
-ldy #0
-lda (sp),y
-tay
-pla
-sta objYlo,y
-txa
-sta objYhi,y
-jmp incsp1
-
+.proc _setObjectY: near
+	pha
+	ldy #0
+	lda (sp),y
+	tay
+	pla
+	sta objYlo,y
+	txa
+	sta objYhi,y
+	jmp incsp1
+.endproc
+	
 .proc _getObjectY : near
-
-tay
-lda objYhi,y
-tax
-lda objYlo,y
-rts
-
+	tay
+	ldx objYhi,y
+	lda objYlo,y
+	rts
 .endproc
 
 .proc _getObjectType : near
-
-tay
-lda objType,y
-rts
-
+	tay
+	lda objType,y
+	rts
 .endproc
 
-_setObjectType:
-
-; A - type
-; TOS - object
-
-tax
-ldy #0
-lda (sp),y
-tay
-txa
-sta objType,y
-
-jmp incsp1
-
-_getNumSectors:
-lda numSectors
-ldx #0
-rts
-
-_getPlayerSpawnX:
-ldx playerSpawnX
-lda #0
-rts
-
-_getPlayerSpawnY:
-ldx playerSpawnY
-lda #0
-rts
-
-_getPlayerSpawnAngle:
-lda playerSpawnAngle
-rts
-
-_getPlayerSpawnSector:
-lda playerSpawnSector
-rts
-
+.proc _setObjectType: near
+	; A - type
+	; TOS - object
+	tay
+	ldx #0
+	lax (sp,x)
+	tya
+	sta objType,x
+	jmp incsp1
+.endproc
+	
+.proc _getNumSectors: near
+	lda numSectors
+	ldx #0
+	rts
+.endproc
+	
+.proc _getPlayerSpawnX: near
+	ldx playerSpawnX
+	lda #0
+	rts
+.endproc
+	
+.proc _getPlayerSpawnY: near
+	ldx playerSpawnY
+	lda #0
+	rts
+.endproc
+	
+.proc _getPlayerSpawnAngle: near
+	lda playerSpawnAngle
+	rts
+.endproc
+	
+.proc _getPlayerSpawnSector: near
+	lda playerSpawnSector
+	rts
+.endproc
+	
 sectorFirstObj:
 ; one for each sector
 .res 64, $ff
@@ -556,114 +480,113 @@ sectorPrevObj:
 ; one for each object
 .res 48, $ff
 
-addObjectToSector:
-; x contains object index
-; a contains sector index
-
-cmp #$ff
-bne :+
-rts
+.proc addObjectToSector: near
+	; x contains object index
+	; a contains sector index	
+	cmp #$ff
+	bne :+
+	rts
 :
+	; o->next = first->next
+	; o->prev = 0xff
+	; first->next->prev = o
+	; first = o
+	tay                   ; A = sec, Y = sec, X = o
+	lda sectorFirstObj,y  ; A = next, Y = sec, X = o
 
-; o->next = first->next
-; o->prev = 0xff
-; first->next->prev = o
-; first = o
-
-tay                   ; A = sec, Y = sec, X = o
-lda sectorFirstObj,y  ; A = next, Y = sec, X = o
-
-sta sectorNextObj,x   ; o->next = next
-lda #$ff              ; A = ff, Y = sec, X = o
-sta sectorPrevObj,x   ; o->prev = ff
-stx objectIndex       ; A = ff, Y = sec, X = o, tmp = o
-lda sectorFirstObj,y  ; A = next, Y = sec, X = tmp = o
-tax                   ; A = next, Y = sec, X = next, tmp = o
-bmi @skip
-lda objectIndex       ; A = o, Y = sec, X = next, tmp = o
-sta sectorPrevObj,x   ; next->prev = o
+	sta sectorNextObj,x   ; o->next = next
+	lda #$ff              ; A = ff, Y = sec, X = o
+	sta sectorPrevObj,x   ; o->prev = ff
+	stx objectIndex       ; A = ff, Y = sec, X = o, tmp = o
+	lda sectorFirstObj,y  ; A = next, Y = sec, X = tmp = o
+	tax                   ; A = next, Y = sec, X = next, tmp = o
+	bmi @skip
+	lda objectIndex       ; A = o, Y = sec, X = next, tmp = o
+	sta sectorPrevObj,x   ; next->prev = o
 @skip:
-lda objectIndex       ; A = o, Y = sec, X = next, tmp = o
-sta sectorFirstObj,y  ; first = o
-tax                   ; A = o, X = o
-rts
-
-_addObjectsToSectors:
-
-; clear first objects
-ldx #(NUMSEC-1)
-lda #$ff
+	lda objectIndex       ; A = o, Y = sec, X = next, tmp = o
+	sta sectorFirstObj,y  ; first = o
+	tax                   ; A = o, X = o
+	rts
+.endproc
+	
+.proc _addObjectsToSectors: near
+	; clear first objects
+	ldx #(NUMSEC-1)
+	lda #$ff
 @clearLoop:
-sta sectorFirstObj,x
-dex
-bpl @clearLoop
-
-; add obj
-ldx numObj
-dex
+	sta sectorFirstObj,x
+	dex
+	bpl @clearLoop
+	
+	; add obj
+	ldx numObj
+	dex
 @loop:
-lda objSec,x
-jsr addObjectToSector
-dex
-bpl @loop
-rts
+	lda objSec,x
+	jsr addObjectToSector
+	dex
+	bpl @loop
+	rts
+.endproc
+	
+.proc _getFirstObjectInSector: near
+	tay
+	lda sectorFirstObj,y
+	ldx #0
+	rts
+.endproc
 
-_getFirstObjectInSector:
-tay
-lda sectorFirstObj,y
-ldx #0
-rts
+.proc _getNextObjectInSector: near
+	tay
+	lda sectorNextObj,y
+	ldx #0
+	rts
+.endproc
+	
+.proc _removeObjectFromSector: near
+	; A contains object index
+	;
+	; if (first == o) first = o->next
+	; o->next->prev = o->prev
+	; o->prev->next = o->next
+	; note that after the operation, the prev and next pointers are still valid for the sector
 
-_getNextObjectInSector:
-tay
-lda sectorNextObj,y
-ldx #0
-rts
-
-_removeObjectFromSector:
-
-; A contains object index
-;
-; if (first == o) first = o->next
-; o->next->prev = o->prev
-; o->prev->next = o->next
-; note that after the operation, the prev and next pointers are still valid for the sector
-
-tay
-lda objSec,y
-tax
-tya
-cmp sectorFirstObj,x
-bne @notfirst
-lda sectorNextObj,y
-sta sectorFirstObj,x
-
+	tay
+	lda objSec,y
+	tax
+	tya
+	cmp sectorFirstObj,x
+	bne @notfirst
+	lda sectorNextObj,y
+	sta sectorFirstObj,x
+	
 @notfirst:
-lda sectorPrevObj,y
-bmi @skip
-tax
-lda sectorNextObj,y
-sta sectorNextObj,x
+	lda sectorPrevObj,y
+	bmi @skip
+	tax
+	lda sectorNextObj,y
+	sta sectorNextObj,x
 @skip:
-lda sectorNextObj,y
-bmi @skip2
-tax
-lda sectorPrevObj,y
-sta sectorPrevObj,x
+	lda sectorNextObj,y
+	bmi @skip2
+	tax
+	lda sectorPrevObj,y
+	sta sectorPrevObj,x
 @skip2:
-rts
-
-_addObjectToSector:
-
-; A contains object index
-; TOS contains sector index
-
-tax
-ldy #0
-lda (sp),y
-jsr addObjectToSector
-jmp incsp1
-
+	rts
+.endproc
+	
+.proc _addObjectToSector: near
+	; A contains object index
+	; TOS contains sector index
+	tax
+	ldy #0
+	lda (sp),y
+	jsr addObjectToSector
+	jmp incsp1
+.endproc
+	
 _setObjectSector:
 
 ; TOS - object
@@ -844,203 +767,196 @@ pycosa_plus_pxsina:
 .word 0
 
 .proc _preTransformSectors: near
-
-lda cosa
-jsr _fastMultiplySetup16x8
-lda cameraX
-ldx cameraX+1
-jsr _fastMultiply16x8
-sta pxcosa
-stx pxcosa+1
-lda cameraY
-ldx cameraY+1
-jsr _fastMultiply16x8
-sta pycosa
-stx pycosa+1
-
-lda sina
-jsr _fastMultiplySetup16x8
-lda cameraX
-ldx cameraX+1
-jsr _fastMultiply16x8
-sta pxsina
-stx pxsina+1
-lda cameraY
-ldx cameraY+1
-jsr _fastMultiply16x8
-sta pysina
-stx pysina+1
-
-sec
-lda pysina
-sbc pxcosa
-sta pysina_minus_pxcosa
-lda pysina+1
-sbc pxcosa+1
-sta pysina_minus_pxcosa+1
-
-clc
-lda pycosa
-adc pxsina
-sta pycosa_plus_pxsina
-lda pycosa+1
-adc pxsina+1
-sta pycosa_plus_pxsina+1
-
-rts
-
+	lda cosa
+	jsr _fastMultiplySetup16x8
+	lda cameraX
+	ldx cameraX+1
+	jsr _fastMultiply16x8
+	sta pxcosa
+	stx pxcosa+1
+	lda cameraY
+	ldx cameraY+1
+	jsr _fastMultiply16x8
+	sta pycosa
+	stx pycosa+1
+	
+	lda sina
+	jsr _fastMultiplySetup16x8
+	lda cameraX
+	ldx cameraX+1
+	jsr _fastMultiply16x8
+	sta pxsina
+	stx pxsina+1
+	lda cameraY
+	ldx cameraY+1
+	jsr _fastMultiply16x8
+	sta pysina
+	stx pysina+1
+	
+	sec
+	lda pysina
+	sbc pxcosa
+	sta pysina_minus_pxcosa
+	lda pysina+1
+	sbc pxcosa+1
+	sta pysina_minus_pxcosa+1
+	
+	clc
+	lda pycosa
+	adc pxsina
+	sta pycosa_plus_pxsina
+	lda pycosa+1
+	adc pxsina+1
+	sta pycosa_plus_pxsina+1
+	
+	rts
 .endproc ; _preTransformSectors
 
 .proc _transformSectorToScreenSpace: near
-
-; A is the sector index
-
-tax
-lda secNumVerts,x
-tay
-dey
-sty vertexCount
-
-; loop and transform
-
-; see getVertexIndex
-txa
-asl
-asl
-asl
-sta modify1+1
-sta modify2+1
-lda #>secVerts
-adc #0
-sta modify1+2
-sta modify2+2
-
-lda cosa
-jsr _fastMultiplySetup8x8
-
-ldy vertexCount
+	; A is the sector index
+	tax
+	lda secNumVerts,x
+	tay
+	dey
+	sty vertexCount
+	
+	; loop and transform
+	
+	; see getVertexIndex
+	txa
+	asl
+	asl
+	asl
+	sta modify1+1
+	sta modify2+1
+	lda #>secVerts
+	adc #0
+	sta modify1+2
+	sta modify2+2
+	
+	lda cosa
+	jsr _fastMultiplySetup8x8
+	
+	ldy vertexCount
 
 loop1:
-
+	
 modify1:
-  ldx secVerts,y
-  stx modify1a+1
-  lda vertX,x
-  jsr _fastMultiply8x8
-  sta xfvertXlo,y
-  txa
-  sta xfvertXhi,y
+	ldx secVerts,y
+	stx modify1a+1
+	lda vertX,x
+	jsr _fastMultiply8x8
+	sta xfvertXlo,y
+	txa
+	sta xfvertXhi,y
 
 modify1a:
-  ldx #0 ; global vertex index
-  lda vertY,x
-  jsr _fastMultiply8x8
-  sta xfvertYlo,y
-  txa
-  sta xfvertYhi,y
-
-  dey
-  bpl loop1
-
-lda sina
-jsr _fastMultiplySetup8x8
-
-ldy vertexCount
-
+	ldx #0 ; global vertex index
+	lda vertY,x
+	jsr _fastMultiply8x8
+	sta xfvertYlo,y
+	txa
+	sta xfvertYhi,y
+	
+	dey
+	bpl loop1
+	
+	lda sina
+	jsr _fastMultiplySetup8x8
+	
+	ldy vertexCount
+	
 loop2:
-
+	
 modify2:
-  ldx secVerts,y
-  stx modify2a+1
-  lda vertX,x
-  jsr _fastMultiply8x8
-  ; y = vy*cosa + vx*sina - py*cosa - px*sina
-  clc
-  adc xfvertYlo,y
-  sta PRODUCT
-  txa
-  adc xfvertYhi,y
-  tax	
-  sec
-  lda PRODUCT
-  sbc pycosa_plus_pxsina
-  sta PRODUCT
-  txa
-  sbc pycosa_plus_pxsina+1
-
-  asl PRODUCT
-  rol
-  sta xfvertYhi,y
-  lda PRODUCT
-  sta xfvertYlo,y
-
+	ldx secVerts,y
+	stx modify2a+1
+	lda vertX,x
+	jsr _fastMultiply8x8
+	; y = vy*cosa + vx*sina - py*cosa - px*sina
+	clc
+	adc xfvertYlo,y
+	sta PRODUCT
+	txa
+	adc xfvertYhi,y
+	tax	
+	sec
+	lda PRODUCT
+	sbc pycosa_plus_pxsina
+	sta PRODUCT
+	txa
+	sbc pycosa_plus_pxsina+1
+	
+	asl PRODUCT
+	rol
+	sta xfvertYhi,y
+	lda PRODUCT
+	sta xfvertYlo,y
+	
 modify2a:
-  ldx #0 ; global vertex index
-  lda vertY,x
-  jsr _fastMultiply8x8
-  ; x = vx*cosa - vy*sina - px*cosa + py*sina
-  sec
-  lda xfvertXlo,y
-  sbc PRODUCT
-  sta PRODUCT
-  lda xfvertXhi,y
-  sbc PRODUCT+1
-  tax
-  clc
-  lda PRODUCT
-  adc pysina_minus_pxcosa
-  sta PRODUCT
-  txa
-  adc pysina_minus_pxcosa+1
+	ldx #0 ; global vertex index
+	lda vertY,x
+	jsr _fastMultiply8x8
+	; x = vx*cosa - vy*sina - px*cosa + py*sina
+	sec
+	lda xfvertXlo,y
+	sbc PRODUCT
+	sta PRODUCT
+	lda xfvertXhi,y
+	sbc PRODUCT+1
+	tax
+	clc
+	lda PRODUCT
+	adc pysina_minus_pxcosa
+	sta PRODUCT
+	txa
+	adc pysina_minus_pxcosa+1
+	
+	asl PRODUCT
+	rol
+	sta xfvertXhi,y
+	lda PRODUCT
+	sta xfvertXlo,y
 
-  asl PRODUCT
-  rol
-  sta xfvertXhi,y
-  lda PRODUCT
-  sta xfvertXlo,y
-
-  ; to finish, need to do the division
-
-lda xfvertYhi, y
-bmi Yneg
-bne Ypos
-lda xfvertYlo, y
-bne Ypos
+	; to finish, need to do the division
+	
+	lda xfvertYhi, y
+	bmi Yneg
+	bne Ypos
+	lda xfvertYlo, y
+	bne Ypos
 Yneg:
-lda xfvertXhi, y
-bpl Xpos
-lda #$c0
-bmi over
+	lda xfvertXhi, y
+	bpl Xpos
+	lda #$c0
+	bmi over
 Xpos:
-lda #$3f
+	lda #$3f
 over:
-sta xfvertScreenX, y
-bne continue
+	sta xfvertScreenX, y
+	bne continue
 Ypos:
-sty vertexCounter
-lda xfvertXlo, y
-ldx xfvertXhi, y
-jsr pushax
-ldy vertexCounter
-lda xfvertYlo, y
-ldx xfvertYhi, y
-jsr _leftShift4ThenDiv
-jsr clampIntToChar
-
-ldy vertexCounter
-sta xfvertScreenX, y
-
+	sty vertexCounter
+	lda xfvertXlo, y
+	ldx xfvertXhi, y
+	jsr pushax
+	ldy vertexCounter
+	lda xfvertYlo, y
+	ldx xfvertYhi, y
+	jsr _leftShift4ThenDiv
+	jsr clampIntToChar
+	
+	ldy vertexCounter
+	sta xfvertScreenX, y
+	
 continue:
-
-  dey
-  bmi :+
-  jmp loop2
-  :
-
-rts
-
+	
+	dey
+	bmi :+
+	jmp loop2
+:
+	rts	
 .endproc ;_transformSectorToScreenSpace
-
 .endif
 
 
@@ -1056,140 +972,137 @@ box:
 .byte 0, 0
 
 .proc _playerOverlapsEdge: near
-
-sta thisEdgeIndex
-jsr _getCurSector
-sta __curSector
-tay
-ldx thisEdgeIndex
-jsr getNextEdge
-sta nextEdgeIndex
-ldx thisEdgeIndex
-lda __curSector
-jsr getVertexIndex
-sta thisEdgeIndex
-ldx nextEdgeIndex
-lda __curSector
-jsr getVertexIndex
-tay
-
-jsr _getPlayerX
-clc
-adc #127
-bcc :+
-inx
+	sta thisEdgeIndex
+	jsr _getCurSector
+	sta __curSector
+	tay
+	ldx thisEdgeIndex
+	jsr getNextEdge
+	sta nextEdgeIndex
+	ldx thisEdgeIndex
+	lda __curSector
+	jsr getVertexIndex
+	sta thisEdgeIndex
+	ldx nextEdgeIndex
+	lda __curSector
+	jsr getVertexIndex
+	tay
+	
+	jsr _getPlayerX
+	clc
+	adc #127
+	bcc :+
+	inx
 :
-txa
-clc
-adc #128
-sta playercoord
-
-ldx thisEdgeIndex
-
-lda vertX,x
-clc
-adc #128
-sta box
-lda vertX,y
-clc
-adc #128
-sta box+1
-cmp box
-bcc @xswap
-
-lda box
-sec
-sbc #4
-sec
-sbc playercoord
-bpl @no_overlap
-
-lda box+1
-clc
-adc #5
-sec
-sbc playercoord
-bpl @checky
+	txa
+	clc
+	adc #128
+	sta playercoord
+	
+	ldx thisEdgeIndex
+	
+	lda vertX,x
+	clc
+	adc #128
+	sta box
+	lda vertX,y
+	clc
+	adc #128
+	sta box+1
+	cmp box
+	bcc @xswap
+	
+	lda box
+	sec
+	sbc #4
+	sec
+	sbc playercoord
+	bpl @no_overlap
+	
+	lda box+1
+	clc
+	adc #5
+	sec
+	sbc playercoord
+	bpl @checky
 
 @no_overlap:
 
-lda #0
-rts
-
+	lda #0
+	rts
+	
 @xswap:
-lda box
-clc
-adc #5
-sec
-sbc playercoord
-bmi @no_overlap
+	lda box
+	clc
+	adc #5
+	sec
+	sbc playercoord
+	bmi @no_overlap
 
-lda box+1
-sec
-sbc #4
-sec
-sbc playercoord
-bpl @no_overlap
-
+	lda box+1
+	sec
+	sbc #4
+	sec
+	sbc playercoord
+	bpl @no_overlap
+	
 @checky:
-
-jsr _getPlayerY
-clc
-adc #127
-bcc :+
-inx
+	
+	jsr _getPlayerY
+	clc
+	adc #127
+	bcc :+
+	inx
 :
-txa
-clc
-adc #128
-sta playercoord
-
-ldx thisEdgeIndex
-
-lda vertY,x
-clc
-adc #128
-sta box
-lda vertY,y
-clc
-adc #128
-sta box+1
-cmp box
-bcc @yswap
-
-lda box
-sec
-sbc #4
-sec
-sbc playercoord
-bpl @no_overlap
-
-lda box+1
-clc
-adc #5
-sec
-sbc playercoord
-bmi @no_overlap
-bpl @overlap
-
+	txa
+	clc
+	adc #128
+	sta playercoord
+	
+	ldx thisEdgeIndex
+	
+	lda vertY,x
+	clc
+	adc #128
+	sta box
+	lda vertY,y
+	clc
+	adc #128
+	sta box+1
+	cmp box
+	bcc @yswap
+	
+	lda box
+	sec
+	sbc #4
+	sec
+	sbc playercoord
+	bpl @no_overlap
+	
+	lda box+1
+	clc
+	adc #5
+	sec
+	sbc playercoord
+	bmi @no_overlap
+	bpl @overlap
+	
 @yswap:
-lda box
-clc
-adc #5
-sec
-sbc playercoord
-bmi @no_overlap
-
-lda box+1
-sec
-sbc #4
-sec
-sbc playercoord
-bpl @no_overlap
-
+	lda box
+	clc
+	adc #5
+	sec
+	sbc playercoord
+	bmi @no_overlap
+	
+	lda box+1
+	sec
+	sbc #4
+	sec
+	sbc playercoord
+	bpl @no_overlap
+	
 @overlap:
-lda #1
-rts
-
+	lda #1
+	rts	
 .endproc
-
