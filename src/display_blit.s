@@ -84,25 +84,35 @@ stride_zc = stride_tables
 stride_zd = stride_tables
 
 ;; texture storage bits interleaved for top/bottom pixel : 0 t0 0 t1 0 b0 0 b1
+;; texture columns interleaved are 16 bytes. add 17th byte = 0 as floor/ceiling value
+;; 15*17 = 255 bytes. every 15th texture column we skip one byte to avoid page crossing
+;; calculate address for column j of texture i (i=0..25, j=0..15):
+;;    col = i*16+j
+;;    extra = floor(col/15)
+;;    offset = 17*col + extra
+;;           = 16*17*i + 17*j + extra
+;;    for texture i=0..14, extra occurs after column j=14-i
+;;    between texture i=14 and i=15 there is another extra
+;;    for texture i=15..25 extra occurs after column j=29-i
+;;  => if (i<15) extra = (i+j<14) ? i-1 : i;
+;;     else extra = (i+j<29) ? i : i+1;
+;;     address = baseaddress + 256*i + 17*(i+j) + extra
+;;    
 .segment "BANK1DATA"
-full_textures: .res 256*21
+full_textures: .res 28*256 ; 26*16*17 + 26 extra + 70 bytes fill
 tex_a = full_textures
 tex_b = full_textures
 tex_c = full_textures
 tex_d = full_textures
 
 ;;   xlate1 : at0 bt0 at1 bt1 ab0 bb0 ab1 bb1 -> at0 at1 bt0 bt1   0   0   0   0
+;;   xlate2 : ct0 dt0 ct1 dt1 cb0 db0 cb1 db1 ->   0   0   0   0 ct0 ct1 dt0 dt1
+;;   xlate3 : at0 bt0 at1 bt1 ab0 bb0 ab1 bb1 -> ab0 ab1 bb0 bb1   0   0   0   0
+;;   xlate4 : ct0 dt0 ct1 dt1 cb0 db0 cb1 db1 ->   0   0   0   0 cb0 cb1 db0 db1
 .segment "BANK1DATA"
 xlate1: .res 256
-
-;;   xlate2 : ct0 dt0 ct1 dt1 cb0 db0 cb1 db1 ->   0   0   0   0 ct0 ct1 dt0 dt1
-.segment "BANK1DATA"
 xlate2: .res 256
-
-.segment "BANK1DATA"
 xlate3: .res 256
-
-.segment "BANK1DATA"
 xlate4: .res 256
 
 
