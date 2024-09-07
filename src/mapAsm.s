@@ -83,9 +83,26 @@
 .else
 .include "src/levels/e1m1.s"
 .endif
-	
+
+.if 0
+;; TWF this is silly optimisation. replacement for pushax assuming stack is page aligned and under 256 bytes
+;; better fix is to change calling convetion to procedure call with zp params for hot functions
+;; ASSUMES STACK LOCATION AND ASSUMES STACK SIZE <= $100 
+__STACKBASE__ = $9700
+.macro dopushax
+	ldy sp
+	dey
+	dey
+	sta __STACKBASE__,y
+	txa
+	sta __STACKBASE__+1,y
+	sty sp
+.endmacro
+.endif
+
 .segment "CODE"
 
+;; TWF TODO : no need to waste this much space on door status
 doorStatus:
 .res 200,0
 	
@@ -133,6 +150,7 @@ NUMSEC = 64
 	rts
 .endproc
 
+.if 0
 .export clampIntToChar
 .proc clampIntToChar: near
 	; x high, a low
@@ -149,7 +167,6 @@ NUMSEC = 64
 	bcs clipdone
 	lda #$c0
 	rts
-	
 sxpos:
 	cmp #0
 	beq :+
@@ -163,7 +180,35 @@ sxpos:
 clipdone:
 	rts
 .endproc
-	
+.endif
+
+.export clampIntToChar
+.proc clampIntToChar: near
+	; x high, a low
+	tay
+	txa
+	bpl sxpos
+	cmp #$ff
+	bne clampNegative
+	tya
+	cmp #$c0
+	bcs clipdone
+clampNegative:
+	lda #$c0
+	rts
+sxpos:
+	cmp #0
+	bne clampPositive
+	tya
+	cmp #$3f
+	bcc clipdone
+clampPositive:
+	lda #$3f
+clipdone:
+	rts
+.endproc
+
+
 .importzp edgeIndex, sectorIndex, numberOfVerts
 
 .proc _getNumVerts : near
@@ -587,149 +632,157 @@ sectorPrevObj:
 	jmp incsp1
 .endproc
 	
-_setObjectSector:
+.proc _setObjectSector: near
+	; TOS - object
+	; A - sector
+	sta sectorIndex
+	ldy #0
+	lda (sp),y
+	sta objectIndex
+	jsr _removeObjectFromSector
 
-; TOS - object
-; A - sector
+	lda sectorIndex
+	ldx objectIndex
+	jsr addObjectToSector
+	; x is unchanged
 
-sta sectorIndex
-ldy #0
-lda (sp),y
-sta objectIndex
-jsr _removeObjectFromSector
-
-lda sectorIndex
-ldx objectIndex
-jsr addObjectToSector
-; x is unchanged
-
-lda sectorIndex
-sta objSec,x
-
-jmp incsp1
-
-_getNumEnemies:
-lda numEnemies
-ldx #0
-rts
-
-_getNumItems:
-lda numItems
-ldx #0
-rts
-
-_getNumSecrets:
-lda numSecrets
-ldx #0
-rts
-
-_getParTime:
-lda parTime
-ldx #0
-rts
-
+	lda sectorIndex
+	sta objSec,x
+	
+	jmp incsp1
+.endproc
+	
+.proc _getNumEnemies: near
+	lda numEnemies
+	ldx #0
+	rts
+.endproc
+	
+.proc _getNumItems: near
+	lda numItems
+	ldx #0
+	rts
+.endproc
+	
+.proc _getNumSecrets: near
+	lda numSecrets
+	ldx #0
+	rts
+.endproc
+	
+.proc _getParTime: near
+	lda parTime
+	ldx #0
+	rts
+.endproc
+	
 visitedSectors:
 .res 64, 0
 
-_resetSectorsVisited:
-ldx numSectors
-lda #0
+.proc _resetSectorsVisited: near
+	ldx numSectors
+	lda #0
 :
-sta visitedSectors,x
-dex
-bpl :-
-rts
-
-_setSectorVisited:
-tax
-lda #1
-sta visitedSectors,x
-rts
-
+	sta visitedSectors,x
+	dex
+	bpl :-
+	rts
+.endproc
+	
+.proc _setSectorVisited: near
+	tax
+	lda #1
+	sta visitedSectors,x
+	rts
+.endproc
+	
 numVisitedSecrets:
 .byte 0
 
-_getNumVisitedSecrets:
-lda #0
-sta numVisitedSecrets
-ldx numSecrets
-dex
+.proc _getNumVisitedSecrets: near
+	lda #0
+	sta numVisitedSecrets
+	ldx numSecrets
+	dex
 secretLoop:
-lda secretSectors,x
-tay
-lda visitedSectors,y
-beq :+
-inc numVisitedSecrets
+	ldy secretSectors,x
+	lda visitedSectors,y
+	beq :+
+	inc numVisitedSecrets
 :
-dex
-bpl secretLoop
-lda numVisitedSecrets
-ldx #0
-rts
+	dex
+	bpl secretLoop
+	lda numVisitedSecrets
+	ldx #0
+	rts
+.endproc
 
-_resetDoorClosedAmounts:
-
-ldy #0
+;; TWF TODO : no need to waste this much space on door status
+.proc _resetDoorClosedAmounts: near
+	ldy #0
 resetDoorsLoop:
-ldx #1
-lda edgeTex,y
-and #$C0 ; EDGE_TYPE_MASK
-cmp #$40 ; EDGE_TYPE_DOOR
-beq :+
-dex
+	ldx #1
+	lda edgeTex,y
+	and #$C0 ; EDGE_TYPE_MASK
+	cmp #$40 ; EDGE_TYPE_DOOR
+	beq :+
+	dex
 :
-txa
-sta doorStatus,y
-iny
-cpy #200
-bne resetDoorsLoop
-rts
+	txa
+	sta doorStatus,y
+	iny
+	cpy #200
+	bne resetDoorsLoop
+	rts
+.endproc
 
-_isEdgeDoor:
-tay
-ldx #0
-lda edgeTex,y
-and #$C0 			; EDGE_TYPE_MASK
-cmp #$40			; EDGE_TYPE_DOOR
-bne :+
-inx
-:
-txa
-rts
+.proc _isDoorClosed: near
+	tay
+	lda doorStatus,y
+	and #$0f
+	rts
+.endproc
 
-_isEdgeSwitch:
-tay
-ldx #0
-lda edgeTex,y
-and #$C0 			; EDGE_TYPE_MASK
-cmp #$C0			; EDGE_TYPE_SWITCH
-bne :+
-inx
-:
-txa
-rts
+.proc _basicOpenDoor: near
+	tay
+	lda #0
+	sta doorStatus,y
+	rts
+.endproc
 	
-.import _fastMulTest
+.proc _basicCloseDoor: near
+	tay
+	lda #1
+	sta doorStatus,y
+	rts
+.endproc
 
-_isDoorClosed:
-tay
-lda doorStatus,y
-and #$0f
-rts
-
-_basicOpenDoor:
-tay
-lda #0
-sta doorStatus,y
-rts
-
-_basicCloseDoor:
-tay
-lda #1
-sta doorStatus,y
-rts
-
-
+.proc _isEdgeDoor: near
+	tay
+	ldx #0
+	lda edgeTex,y
+	and #$C0 			; EDGE_TYPE_MASK
+	cmp #$40			; EDGE_TYPE_DOOR
+	bne :+
+	inx
+:
+	txa
+	rts
+.endproc
+	
+.proc _isEdgeSwitch: near
+	tay
+	ldx #0
+	lda edgeTex,y
+	and #$C0 			; EDGE_TYPE_MASK
+	cmp #$C0			; EDGE_TYPE_SWITCH
+	bne :+
+	inx
+:
+	txa
+	rts
+.endproc
+		
 .if 1
 ; ----------------------------
 ; transform sector
@@ -765,7 +818,8 @@ pysina_minus_pxcosa:
 .word 0
 pycosa_plus_pxsina:
 .word 0
-
+		
+	
 .proc _preTransformSectors: near
 	lda cosa
 	jsr _fastMultiplySetup16x8
@@ -840,7 +894,6 @@ pycosa_plus_pxsina:
 	ldy vertexCount
 
 loop1:
-	
 modify1:
 	ldx secVerts,y
 	stx modify1a+1
@@ -866,8 +919,7 @@ modify1a:
 	
 	ldy vertexCount
 	
-loop2:
-	
+loop2:	
 modify2:
 	ldx secVerts,y
 	stx modify2a+1
@@ -938,7 +990,7 @@ over:
 Ypos:
 	sty vertexCounter
 	lda xfvertXlo, y
-	ldx xfvertXhi, y
+	ldx xfvertXhi, y	
 	jsr pushax
 	ldy vertexCounter
 	lda xfvertYlo, y
@@ -949,8 +1001,7 @@ Ypos:
 	ldy vertexCounter
 	sta xfvertScreenX, y
 	
-continue:
-	
+continue:	
 	dey
 	bmi :+
 	jmp loop2
