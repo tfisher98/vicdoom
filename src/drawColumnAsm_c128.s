@@ -8,6 +8,11 @@
 .case		on
 .debuginfo	off
 .importzp	sp
+
+.if .version=531
+.feature force_range
+.endif
+
 .export     _drawColumn
 .export     _drawColumnSameY
 .export     _drawColumnTransparent
@@ -27,8 +32,7 @@ buffer = $BE00
 
 .macro loadaxfromstack offs
 	ldy #offs
-	lda (sp),y
-	tax
+	lax (sp),y
 	dey
 	lda (sp),y
 .endmacro
