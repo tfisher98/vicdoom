@@ -74,7 +74,6 @@
 #include "p_enemy.h"
 #include "util.h"
 #include "summary.h"
-#include "victory.h"
 #include "enemy.h"
 
 #pragma staticlocals(on)
@@ -1200,6 +1199,22 @@ void __fastcall__ updateWeapons(char keys)
     }
   }
 #endif
+}
+
+void __fastcall__ victoryScreen(void)
+{
+  char j;
+  char caFileName[] = "pvictory1.txt";
+
+  playMusic("pvictormus");
+
+  for (j = 0; j < 2; ++j)
+  {
+    caFileName[8] = '1' + j;
+    load_full_text_screen(caFileName);
+  }
+
+  stopMusic();
 }
 
 int main()
