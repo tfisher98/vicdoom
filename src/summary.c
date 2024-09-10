@@ -5,7 +5,6 @@
 
 #include "core_system.h"
 #include "display_screen.h"
-#include "updateInput.h"
 #include "playSound.h"
 
 #include "mapAsm.h"
@@ -23,11 +22,12 @@ void __fastcall__ waitASecond(void)
   char i = 60;
   do
   {
-    // if (PEEK(198) == 0)
-	  {
-		  waitForRaster(1);
-	  }
-  	--i;
+    scan_keyboard();
+    if (get_key_count() == 0)
+      {
+	waitForRaster(1);
+      }
+    --i;
   }
   while (i > 0);
 }
@@ -42,9 +42,9 @@ void __fastcall__ rollInPercentage(char pc, int scr)
     if (i > pc) i = pc;
     print3DigitNumToScreen(i, scr);
     playSound(SOUND_PISTOL);
-    // if (PEEK(198) == 0)
+    if (get_key_count() == 0)
     {
-         waitForRaster(2);
+      waitForRaster(2);
     }
   }
   while (i < pc);
@@ -55,8 +55,7 @@ void __fastcall__ rollInTime(int t, int scr)
   int i = -5;
   char ih, il;
   POKE(scr + 2,':');
-  do
-  {
+  do {
     i += 5;
     if (i > t) i = t;
     ih = i / 60;
@@ -64,9 +63,8 @@ void __fastcall__ rollInTime(int t, int scr)
     print2DigitNumToScreen(ih, scr);
     print2DigitNumToScreen(il, scr + 3);
     playSound(SOUND_PISTOL);
-    //    if (PEEK(198) == 0)
-    {
-	 waitForRaster(2);
+    if (get_key_count() == 0) {
+      waitForRaster(2);
     }
   }
   while (i < t);
@@ -104,7 +102,7 @@ void __fastcall__ summaryScreen(void)
   cputsxy(4, 14, "par");
 
   setTextColor(2);
-  // POKE(198, 0); TODO : clear key press
+  clear_keyboard_buffer();
   rollInPercentage(kills, 0x0400+40*5+14);
   waitASecond();
   rollInPercentage(items, 0x0400+40*7+14);
@@ -124,9 +122,11 @@ void __fastcall__ summaryScreen(void)
   rollInTime(par, 0x0400+40*14+13);
   waitASecond();
   printCentered("press a key", 20);
-  //POKE(198, 0);
-  //while (PEEK(198) == 0) ;  // TODO : wait for key press
-
+  clear_keyboard_buffer();
+  while (get_key_count()==0) {
+    waitForRaster(1);
+    scan_keyboard();
+  }
   // clear screen
   clearScreen();
 }

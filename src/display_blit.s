@@ -85,11 +85,49 @@ stride_lo: .res 256
 ;;    for texture i=0..14, extra occurs after column j=14-i
 ;;    between texture i=14 and i=15 there is another extra
 ;;    for texture i=15..25 extra occurs after column j=29-i
-;;  => if (i<15) extra = (i+j<14) ? i-1 : i;
-;;     else extra = (i+j<29) ? i : i+1;
+;;  => if (i<15) extra = (i+j<14) ? i : i+1;
+;;     else extra = (i+j<29) ? i+1 : i+2;
 ;;     address = baseaddress + 256*i + 17*(i+j) + extra
-;;             = baseaddress + 256*i + i + 16*(i+j) + (i+j) + {-1,0,1}
-;;    
+;;             = baseaddress + 256*i + i + 16*(i+j) + (i+j) + {0,1,2}
+
+.segment "CODE"
+.proc get_blit_address: near
+	;; IN : texture number i in X
+	;; IN : column j in A
+	;; OUT: address in a/x
+	stx tmp
+	stx tmp+1
+	clc
+	adc tmp ; i+j +extra2 in A
+	tay
+	adc tmp
+	sta tmp ; 256*i + i + (i+j) in tmp:tmp+1 [no carry possibly from i+(i+j)]
+	tya
+	asl
+	asl
+	asl
+	bcs :+
+	inc tmp+1
+:
+	asl
+	bcs :+
+	inc tmp+1
+:
+	adc tmp
+	cpx #14 ; carry set iff i>=15
+	bcs extra2
+	cpy #13
+	adc #0 ; add +1 in case i+j>=14
+	jmp done
+extra2:
+	adc #0 ; carry set so this adds +1 for extra2
+	cpy #28
+	adc #0 ; add +1 in case i+j>=29
+done:   
+	ldx tmp+1
+	rts
+.endproc
+
 .segment "BANK1DATA"
 full_textures: .res 28*256 ; 26*16*17 + 26 extra + 70 bytes fill
 tex_a = full_textures
@@ -145,13 +183,9 @@ xlate4:
 ;; stride tables are 40 bytes long interleaved at 2 bytes. 6 tables per page, aligned so no indexing across pages  
 .segment "BANK1DATA"
 
-
 ;;   stride tables are 40 bytes long interleaved at 2 bytes. 6 tables per page
 ;;   tables indexed by h = 128/y. table values index 17 byte texture column tables
-
-
-;;   stride tables are 40 bytes long interleaved at 2 bytes. 6 tables per page
-;;   tables indexed by h = 128/y. table values index 17 byte texture column tables
+;;   table for h starts at offset 256*floor(h/6) + 80*(h%3) + (h%2)
 
 stride_tables:
 .byte 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16

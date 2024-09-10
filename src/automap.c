@@ -1,7 +1,7 @@
+#include "core_system.h"
 #include "display_screen.h"
 #include "player.h"
 #include "mapAsm.h"
-#include "updateInput.h"
 #include "drawColumn.h"
 #include "playSound.h"
 #include "util.h"

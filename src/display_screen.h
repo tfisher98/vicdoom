@@ -1,3 +1,5 @@
+void __fastcall__ load_full_text_screen(char *fname);
+
 void __fastcall__ eraseMessage(void);
 void __fastcall__ meltScreen(char health);
 void __fastcall__ clearScreen(void);

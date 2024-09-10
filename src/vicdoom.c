@@ -67,7 +67,6 @@
 #include "display_properties.h"
 #include "display_screen.h"
 #include "display_geometry.h"
-#include "updateInput.h"
 #include "playSound.h"
 #include "mapAsm.h"
 #include "drawColumn.h"

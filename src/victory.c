@@ -4,11 +4,11 @@
 #include <conio.h>
 
 #include "core_system.h"
-#include "updateInput.h"
 #include "playSound.h"
 
 #include "util.h"
 #include "vicdoom.h"
+#include "display_screen.h"
 
 #pragma staticlocals(on)
 

@@ -24,8 +24,8 @@ void __fastcall__ load_full_text_screen(char *fname)
   char x, c, d;
 
   //POKE(0x900f,8); //black border
-  //POKE(198, 0);
-
+  clear_keyboard_buffer();
+  
   // read in the text, then type it out
   load_data_file(fname);
 
@@ -76,23 +76,28 @@ void __fastcall__ load_full_text_screen(char *fname)
           if (x == ',') wait = 16;
         }
         d = 0;
-        // if (PEEK(198) == 0)
-	waitForRaster(wait);
+	scan_keyboard();
+	if (get_key_count() == 0)
+	  waitForRaster(wait);	  	
       }
       POKE(m, 32);
     }
     ++k;
   }
   
-  // POKE(198, 0);
+  clear_keyboard_buffer();
   while (1)
   {
     waitForRaster(32);
     POKE(m,29);
-    //   if (PEEK(198)) break;
+    scan_keyboard();
+    if (get_key_count() != 0)
+      break;
     waitForRaster(32);
     POKE(m,32);
-    // if (PEEK(198)) break;
+    scan_keyboard();
+    if (get_key_count() != 0)
+      break;
   }
 
   clearScreen();

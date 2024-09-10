@@ -66,4 +66,7 @@
 
 ;; C=128 Kernal
 ;; many addresses $90-$f8
-	
+.exportzp KEY_COUNT       := $D0
+.exportzp SHFLG           := $D3
+
+.export KEYD              := $34A
