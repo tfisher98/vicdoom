@@ -1221,6 +1221,7 @@ int main()
   install_nmi_handler();
   
   // needed for clearScreen
+  load_bank(0);
   load_data_file("phicode");
 
   // processor port 1 :
@@ -1245,7 +1246,7 @@ int main()
   generateMulTab();
   load_data_file("psluts");
   load_data_file("ptextures");
-  
+    
 start:
   bordercolor(COLOR_BLUE);
   playMusic("pe1m9mus");

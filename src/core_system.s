@@ -1,9 +1,10 @@
-.setcpu "6502"
+.setcpu "6502X"
 .segment "CODE"
 
 .importzp sp
 .importzp sreg
 
+.export _load_bank
 .export _load_file
 .export _waitForRaster
 .export _install_nmi_handler
@@ -12,15 +13,21 @@
 
 .segment "LOWCODE2"
 
+; A - bank to load into (0 = bank0 ram; 1 = bank1 ram)
+.proc _load_bank: near
+	; SETBNK : A = i/o bank (0-15); X = filename bank (0-15)
+	; updates ZP values C6, C7 for bank info
+	ldx #0 ; FNBANK
+	jmp SETBNK
+.endproc
+
 ; params: filename, length of filename
 ; A - length of fname
 ; TOS - fname
-
 .proc _load_file: near
 	pha
 	ldy #0
-	lda (sp), y
-	tax           ; x contains low byte
+	lax (sp), y   ; x contains low byte
 	iny
 	lda (sp), y
 	tay           ; y contains high byte
@@ -57,8 +64,7 @@
 vicraster := $d012
 
 .segment "CODE"
-.proc _waitForRaster: near
-	
+.proc _waitForRaster: near	
 	tay
 @loop:
 :
@@ -71,6 +77,6 @@ vicraster := $d012
 	bmi :-
 	dey
 	bne @loop
-	rts
-	
+	rts	
 .endproc
+
