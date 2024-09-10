@@ -75,11 +75,11 @@
 #include "util.h"
 #include "summary.h"
 #include "enemy.h"
+#include "menu.h"
 
 #pragma staticlocals(on)
 
 unsigned char __fastcall__ testFilled(signed char col);
-
 
 void __fastcall__ setCameraAngle(unsigned char a);
 void __fastcall__ setCameraX(int x);
@@ -1019,8 +1019,6 @@ void handleCheatCodes(void)
     }
   }
 }
-
-char __fastcall__ runMenu(char canReturn);
 
 char caLevel[] = "pe1m1";
 char caMusic[] = "pe1m1mus";
