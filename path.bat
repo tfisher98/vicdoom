@@ -1,0 +1,1 @@
+set path=%path%;d:\retro\GTK3VICE-3.9-win64\bin;d:\retro\cc65-2.13\bin

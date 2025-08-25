@@ -1,4 +1,4 @@
-cl65 -I c:\retro\cc65-2.13.3\include -I src -I src\textures -I . --lib-path c:\retro\cc65-2.13.3\lib -t vic20 -C doom_cc65.cfg -O -l src\vicdoom.c src\menu.c src\automap.c src\p_enemy.c src\summary.c src\victory.c src\util.c src\cheatsAsm.s src\utilAsm.s src\enemy.s src\m_random.s src\doomlogo.s src\drawLine.s src\updateInput.s src\doomfont.s src\textures\textures.s src\dpsounds.s src\playSound.s src\drawColumnAsm.s src\logMathAsm.s src\mapAsm.s -vm -m map.txt -o doom_unc.prg
+cl65 -I d:\retro\cc65-2.13\include -I src -I src\textures -I . --lib-path d:\retro\cc65-2.13\lib -t vic20 -C doom_cc65.cfg -O -l src\vicdoom.c src\menu.c src\automap.c src\p_enemy.c src\summary.c src\victory.c src\util.c src\cheatsAsm.s src\utilAsm.s src\enemy.s src\m_random.s src\doomlogo.s src\drawLine.s src\updateInput.s src\doomfont.s src\textures\textures.s src\dpsounds.s src\playSound.s src\drawColumnAsm.s src\logMathAsm.s src\mapAsm.s -vm -m map.txt -o doom_unc.prg
 rem \app\pucrunch\pucrunch -c20 doom_unc.prg doom.prg
 rem\app\exomizer\win32\exomizer sfx basic -t52 -odoom.prg doom_unc.prg
 exomizer sfx basic -t52 -odoom.prg doom_unc.prg

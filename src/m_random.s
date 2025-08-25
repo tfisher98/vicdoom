@@ -54,7 +54,7 @@ rts
 
 .else
 
-.segment "LOWCODE"
+.segment "CODE"
 
 prnd:
 .byte 0

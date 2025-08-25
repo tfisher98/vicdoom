@@ -55,7 +55,7 @@
 .export _texFrameWidth
 
 
-.segment "LOWCODE"
+.segment "CODE"
 
 ;
 ; P_ApproxDistance

@@ -84,7 +84,7 @@ objXlo:
 objYlo:
 .res 48, 0
 
-.segment "LOWCODE"
+.segment "CODE"
 
 ; r/w parts (48 bytes)
 xfvertXhi:
