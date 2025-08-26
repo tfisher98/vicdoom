@@ -1,10 +1,10 @@
-cl65 -I c:\retro\cc65-2.13.3\include -I src -I src\textures -I . --lib-path c:\retro\cc65-2.13.3\lib -t c128 -C doom_c128_cc65.cfg -Ln doom128.lbl -O -Cl src\zeropage.s src\core_system.s src\core_system_c.c src\core_math.s src\display_screen.s src\display_screen_c.c src\display_geometry.c src\display_blit.s src\vicdoom.c src\menu.c src\automap.c src\p_enemy.c src\summary.c src\victory.c src\util.c src\cheatsAsm.s src\utilAsm_c128.s src\enemy.s src\m_random.s src\doomlogo.s src\drawLine.s src\doomfont.s src\textures\textures.s src\dpsounds.s src\playSound_c128.s src\drawColumnAsm_c128.s src\mapAsm.s -vm -m map.txt -o doom_u128.prg
+d:\retro\cc65-2.13\bin\cl65 -I d:\retro\cc65-2.13\include -I src -I src\textures -I . --lib-path d:\retro\cc65-2.13\lib -t c128 -C doom_c128_cc65.cfg -Ln doom128.lbl -O -Cl src\zeropage.s src\core_system.s src\core_system_c.c src\core_math.s src\display_screen.s src\display_screen_c.c src\display_geometry.c src\display_blit.s src\vicdoom.c src\menu.c src\automap.c src\p_enemy.c src\summary.c src\util.c src\cheatsAsm.s src\utilAsm_c128.s src\enemy.s src\m_random.s src\doomlogo.s src\drawLine.s src\doomfont.s src\textures\textures.s src\dpsounds.s src\playSound_c128.s src\drawColumnAsm_c128.s src\mapAsm.s -vm -m map.txt -o doom_u128.prg
 
 @IF %ERRORLEVEL% NEQ 0 ( 
    EXIT /b %ERRORLEVEL% 
 )
 
-exomizer sfx basic -t128 -odoom128.prg doom_u128.prg
+d:\retro\exomizer\win32\exomizer sfx basic -t128 -odoom128.prg doom_u128.prg
 
 @IF %ERRORLEVEL% NEQ 0 ( 
    EXIT /b %ERRORLEVEL% 
