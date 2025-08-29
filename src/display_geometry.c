@@ -75,7 +75,7 @@ unsigned char getWidthFromHeight(char ws, unsigned char h)
   return 0; // should not occur
 }
 
-#if 1
+#if 0
 void __fastcall__ drawWall(char sectorIndex, char curEdgeIndex, char nextEdgeIndex, signed char x_L, signed char x_R)
 {
   char edgeGlobalIndex = getEdgeIndex(sectorIndex, curEdgeIndex);
@@ -129,23 +129,20 @@ void __fastcall__ drawWall(char sectorIndex, char curEdgeIndex, char nextEdgeInd
 }
 #endif
 
-#if 0
-// work in progress ... currently hangs on division by zero
+#if 1
 void __fastcall__ drawWall(char sectorIndex, char curEdgeIndex, char nextEdgeIndex, signed char x_L, signed char x_R)
 {
   char edgeGlobalIndex = getEdgeIndex(sectorIndex, curEdgeIndex);
   char textureIndex = getEdgeTexture(edgeGlobalIndex);
   char edgeLen = getEdgeLen(edgeGlobalIndex);
 
-  int x1 = getTransformedX(curEdgeIndex),  y1 = getTransformedY(curEdgeIndex);
-  int x2 = getTransformedX(nextEdgeIndex), y2 = getTransformedY(nextEdgeIndex);
-  int dx = x2-x1;
-  signed char sx1 = getScreenX(curEdgeIndex), sx2 = getScreenX(nextEdgeIndex);
+  int x1 = getTransformedX(curEdgeIndex),       y1 = getTransformedY(curEdgeIndex);
+  int dx = getTransformedX(nextEdgeIndex) - x1, dy = getTransformedY(nextEdgeIndex) - y1;
 
-  unsigned int texI, h1, h2, curY;
-  int wcdx, uwcdx, dwcdx, duwcdx, wc, u;
-  char fit;
   signed char curX;
+  int numer, denom, numer_step, denom_step;
+  unsigned int t, texI, curY, h;
+  char fit;
 
   if ((textureIndex & EDGE_TYPE_MASK) == EDGE_TYPE_JAMB) {
     texI = (textureIndex & EDGE_PROP_MASK) >> EDGE_PROP_SHIFT;
@@ -156,42 +153,51 @@ void __fastcall__ drawWall(char sectorIndex, char curEdgeIndex, char nextEdgeInd
     fit = (textureIndex == 2 || textureIndex == 5 || textureIndex == 6); // techwall, switch, door
   }
 
-  h1 = div128over(y1);
-  h2 = div128over(y2);
+  // exclude filled columns at edges
+  for (;x_L != x_R; ++x_L) {
+    if (testFilled(x_L) == 0) break; 
+  }
 
-  fastMultiplySetup16x8(sx2-x_L);
-  wcdx = fastMultiply16x8(h1);
-  fastMultiplySetup16x8(sx1-x_L);
-  wcdx -= fastMultiply16x8(h2);
-  dwcdx = h2-h1;
+  for (;x_L != x_R; --x_R) {
+    if (testFilled(x_R-1) == 0) break; 
+  }
 
-  fastMultiplySetup16x8(edgeLen);
-  uwcdx = div88(fastMultiply16x8(x_L-sx1),y2) << 3; // shift left for TEXW*WALLH
-  duwcdx = fastMultiply16x8(h1) >> 4; // shift left for TEXW
-  
   for (curX = x_L; curX != x_R; ++curX) {
-    if (testFilled(curX) != 0) continue; // any filled object drawn first should obstruct the wall
+    if (curX == x_L) {
+        fastMultiplySetup16x8((x_L<<1)+3);
+        denom = dx - (fastMultiply16x8(dy)<<3);
+        if (denom <= 0) break;    
+        numer = (fastMultiply16x8(y1)<<3) - x1;
+        denom_step = dy>>4; 
+        numer_step = y1>>4;
+    } else {
+        denom = denom - denom_step;
+        if (denom <= 0) break;
+        numer = numer + numer_step;
+        if (testFilled(curX) != 0) continue; // any filled object drawn first should obstruct the wall
+    }
+    t = div88(numer, denom);
+    if (t > 255) t = 255;
 
-    wc = 20;
-    curY = 1638; // 1638 = 256*(128/20)
-    //    wc = div88(wcdx,dx);
-    //    u = div88(uwcdx,wcdx);
-    //curY = div128over(wc);
-    //    if (fit==0) {
-    //  fastMultiplySetup8x8(t>>1);
-    //  texI = (fastMultiply8x8(edgeLen)>>5) & 15; 
-    //} else if (fit==1) {  
-    //  texI = t >> 4; 
-    //}  
-    texI = 0;    
-    drawColumn(textureIndex, texI, curX, curY, wc);
-    setFilled(curX, wc);
-
-    uwcdx += duwcdx;
-    wcdx += dwcdx;
+    fastMultiplySetup16x8(t>>1);
+    curY = (fastMultiply16x8(dy)<<1) + y1;
+    if (curY <= 0) continue;
+    
+    h = div128over(curY);
+    setFilled(curX, (unsigned char)h);
+    
+    if (fit==0) {
+      fastMultiplySetup8x8(t>>1);
+      texI = (fastMultiply8x8(edgeLen)>>5) & 15;
+    } else if (fit==1) { 
+      texI = t >> 4;
+    } 
+    
+    drawColumn(textureIndex, texI, curX, curY, h);      
   }
 }
 #endif
+
 
 void __fastcall__ drawObject(char o, int vx, int vy, signed char x_L, signed char x_R, char transparent)
 {
