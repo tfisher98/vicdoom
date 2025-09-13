@@ -112,7 +112,7 @@ keepclearing:
 	tay
 	ldx #0
 	lax (sp,x)
-	axs #-16		; HALFSCREENWIDTH	
+	axs #-16		; add HALFSCREENWIDTH	
 	tya
 	sta filled,x
 	jmp incsp1	

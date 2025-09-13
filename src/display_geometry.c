@@ -129,6 +129,8 @@ void __fastcall__ drawWall(char sectorIndex, char curEdgeIndex, char nextEdgeInd
 }
 #endif
 
+int curYforh[128] = {0}; // temp storage for proof of concept that curY can be derived from h
+
 #if 1
 void __fastcall__ drawWall(char sectorIndex, char curEdgeIndex, char nextEdgeIndex, signed char x_L, signed char x_R)
 {
@@ -193,15 +195,32 @@ void __fastcall__ drawWall(char sectorIndex, char curEdgeIndex, char nextEdgeInd
       texI = t >> 4;
     } 
     
-    drawColumn(textureIndex, texI, curX, curY, h);      
+    if (curYforh[(unsigned char)h] == 0) 
+        curYforh[(unsigned char)h] = curY;
+
+    drawColumn(textureIndex, texI, curX, curYforh[(unsigned char)h], h);      
   }
 }
 #endif
 
+void __fastcall__ recordObjectAtCenterOfView(char o, char transparent)
+{
+  char objectType = getObjectType(o);
+  if (!transparent)
+  {
+    itemAtCenterOfView = o;
+    typeAtCenterOfView = TYPE_OBJECT;
+  }
+  else if (objectType == kOT_Barrel)
+  {
+    itemAtCenterOfView = o;
+    typeAtCenterOfView = TYPE_BARREL;
+  }
+}
 
 void __fastcall__ drawObject(char o, int vx, int vy, signed char x_L, signed char x_R, char transparent)
 {
-  unsigned int h = div128over(vy); // h = (SCREENHEIGHT/16) * 512 / (vy/16); 
+  unsigned int h = div128over(vy); // h = (SCREENHEIGHT/16) * 512 / (vy/16);
   unsigned char hc = (h < 128) ? h : 127;
   char objectType = getObjectType(o);
   unsigned char w = getWidthFromHeight(texFrameWidthScale(objectType), hc);
@@ -211,28 +230,38 @@ void __fastcall__ drawObject(char o, int vx, int vy, signed char x_L, signed cha
   int sx, u, du;
   signed char leftX, startX, endX, curX;
 
-  if (w == 0) return;
+  if (w == 0)
+    return;
 
-  sx = leftShift4ThenDiv(vx, vy); //sx = vx / (vy / HALFSCREENWIDTH);
-  if (!(sx > -64 && sx < 64)) return; 
+  sx = leftShift4ThenDiv(vx, vy); // sx = vx / (vy / HALFSCREENWIDTH);
+  if (!(sx > -64 && sx < 64))
+    return;
 
   leftX = startX = sx - w;
   endX = sx + w;
-  
-  if (startX >= x_R || endX <= x_L) return;  
-  if (startX < x_L) startX = x_L;
-  if (endX > x_R) endX = x_R; 
-  
-  if (objectType < 5) {
+
+  if (startX >= x_R || endX <= x_L)
+    return;
+  if (startX < x_L)
+    startX = x_L;
+  if (endX > x_R)
+    endX = x_R;
+
+  if (objectType < 5)
+  {
     p_enemy_wasseenthisframe(o);
     textureIndex = p_enemy_get_texture(o);
-    if (textureIndex & TEX_ANIMATE) {
+    if (textureIndex & TEX_ANIMATE)
+    {
       textureIndex &= ~TEX_ANIMATE;
       fliptexture = frame & 2;
     }
-  } else {
+  }
+  else
+  {
     textureIndex = texFrameTexture(objectType);
-    if (transparent) {
+    if (transparent)
+    {
       startY = texFrameStartY(objectType);
       height = texFrameHeight(objectType);
     }
@@ -244,46 +273,50 @@ void __fastcall__ drawObject(char o, int vx, int vy, signed char x_L, signed cha
   //   = (TEXWIDTH/512)*(2*(startX-leftX)+1)*widthScale*yc
   // du = TEXWIDTH*2/(4*w) = TEXWIDTH*widthScale/(2*h) = (TEXWIDTH/256)*widthScale*yc
   texI = getObjectTexIndex(w, startX - leftX);
-  du = div88(8,w); 
-  if (transparent && (texFrameWidth(objectType) != 16)) { // half width texture with offset
-    texI = texFrameStartX(objectType) + (texI>>1);
-    du = du>>1;
-  } else if (fliptexture) {
+  du = div88(8, w);
+  if (transparent && (texFrameWidth(objectType) != 16))
+  { // half width texture with offset
+    texI = texFrameStartX(objectType) + (texI >> 1);
+    du = du >> 1;
+  }
+  else if (fliptexture)
+  {
     texI = (TEXWIDTH - 1) ^ texI;
     du = -du;
   }
   u = texI << 8;
-  
-  for (curX = startX; curX != endX; ++curX) {
-    if (testFilled(curX) >= hc) continue; // closer (taller) objects should obstruct 
+
+  for (curX = startX; curX != endX; ++curX)
+  {
+    texI = u >> 8;
+    u += du;
+
+    if (testFilled(curX) >= hc)
+      continue; // closer (taller) objects should obstruct
 
     if (curX == 0) {
-      if (!transparent) {
-	itemAtCenterOfView = o;
-	typeAtCenterOfView = TYPE_OBJECT;
-      } else if (objectType == kOT_Barrel) {
-	itemAtCenterOfView = o;
-	typeAtCenterOfView = TYPE_BARREL;
-      }
+      recordObjectAtCenterOfView(o, transparent);
     }
-    
-    texI = u>>8;    
-    u += du;
-    
-    if (transparent) {
+
+    if (transparent)
+    {
       drawColumnTransparent(textureIndex, startY, height, texI, curX, vy, hc);
-    } else {
-      setFilled(curX, hc);            
-      if (first) {
-	first = 0;
-	drawColumn(textureIndex, texI, curX, vy, hc);
-      } else {
-	drawColumnSameY(textureIndex, texI, curX, vy, hc);
+    }
+    else
+    {
+      setFilled(curX, hc);
+      if (first)
+      {
+        first = 0;
+        drawColumn(textureIndex, texI, curX, vy, hc);
+      }
+      else
+      {
+        drawColumnSameY(textureIndex, texI, curX, vy, hc);
       }
     }
   }
 }
-
 
 signed char __fastcall__ drawDoor(char sectorIndex, char curEdgeIndex, char nextEdgeIndex, signed char x_L, signed char x_R)
 {
@@ -358,19 +391,19 @@ void __fastcall__ drawObjectsInSector(char sectorIndex, signed char x_L, signed 
       char index = sorted[i];
       char type = getObjectType(objO[index]);
       if (type < 5 || type == kOT_ImpShot) {
-	p_enemy_add_thinker(objO[index]);
+      	p_enemy_add_thinker(objO[index]);
       }
       if (texFrameSolid(type)) {
-	// immediately draw solid objects
-	drawObject(objO[index],objX[index],objY[index],x_L,x_R,0);
+	      // immediately draw solid objects
+	      drawObject(objO[index],objX[index],objY[index],x_L,x_R,0);
       } else {
-	// queue transparent objects to draw back-to-front at end
-	transO[numTransparent] = objO[index];
-	transX[numTransparent] = objX[index];
-	transY[numTransparent] = objY[index];
-	transSXL[numTransparent] = x_L;
-	transSXR[numTransparent] = x_R;
-	++numTransparent;
+        // queue transparent objects to draw back-to-front at end
+        transO[numTransparent] = objO[index];
+        transX[numTransparent] = objX[index];
+        transY[numTransparent] = objY[index];
+        transSXL[numTransparent] = x_L;
+        transSXR[numTransparent] = x_R;
+        ++numTransparent;
       }
     }
   }
@@ -507,12 +540,12 @@ void __fastcall__ drawSpans(void)
         }
         else
         {
-	  if (isEdgeSwitch(edgeGlobalIndex) && (curX <= 0) && (nextX > 0) && testFilled(0) == 0) {
-	    typeAtCenterOfView = TYPE_SWITCH;
-	    itemAtCenterOfView = edgeGlobalIndex;
-	  }    	  
-	  automap_sawEdge(edgeGlobalIndex);
-	  drawWall(sectorIndex, curEdge, nextEdge, curX, nextX);
+          if (isEdgeSwitch(edgeGlobalIndex) && (curX <= 0) && (nextX > 0) && testFilled(0) == 0) {
+            typeAtCenterOfView = TYPE_SWITCH;
+            itemAtCenterOfView = edgeGlobalIndex;
+          }    	  
+          automap_sawEdge(edgeGlobalIndex);
+          drawWall(sectorIndex, curEdge, nextEdge, curX, nextX);
         }
         curX = nextX;
         curEdge = nextEdge;

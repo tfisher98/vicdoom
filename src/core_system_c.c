@@ -7,7 +7,7 @@
 #include "util.h"
 #include "playSound.h"
 
-#pragma staticlocals(on)
+#pragma static-locals(on)
 
 void __fastcall__ load_data_file(char *fname)
 {

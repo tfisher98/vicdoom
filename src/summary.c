@@ -12,7 +12,7 @@
 #include "p_enemy.h"
 #include "vicdoom.h"
 
-#pragma staticlocals(on)
+#pragma static-locals(on)
 
 extern char *caLevelNames[];
 extern char level;

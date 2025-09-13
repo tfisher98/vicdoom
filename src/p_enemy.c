@@ -41,7 +41,7 @@
 #include "util.h"
 #include "enemy.h"
 
-#pragma staticlocals(on)
+#pragma static-locals(on)
 
 #define boolean char
 #define false 0
