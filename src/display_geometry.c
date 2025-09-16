@@ -273,18 +273,20 @@ void __fastcall__ drawObject(char o, int vx, int vy, signed char x_L, signed cha
   //   = (TEXWIDTH/512)*(2*(startX-leftX)+1)*widthScale*yc
   // du = TEXWIDTH*2/(4*w) = TEXWIDTH*widthScale/(2*h) = (TEXWIDTH/256)*widthScale*yc
   texI = getObjectTexIndex(w, startX - leftX);
+  u = texI << 8;
   du = div88(8, w);
   if (transparent && (texFrameWidth(objectType) != 16))
   { // half width texture with offset
     texI = texFrameStartX(objectType) + (texI >> 1);
     du = du >> 1;
+    u = u >> 1;
   }
   else if (fliptexture)
   {
     texI = (TEXWIDTH - 1) ^ texI;
     du = -du;
+    u += 255;
   }
-  u = texI << 8;
 
   for (curX = startX; curX != endX; ++curX)
   {
