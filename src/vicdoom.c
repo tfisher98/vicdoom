@@ -77,13 +77,11 @@
 #include "enemy.h"
 #include "menu.h"
 
-#pragma staticlocals(on)
+#pragma static-locals(on)
 
 unsigned char __fastcall__ testFilled(signed char col);
 
 void __fastcall__ setCameraAngle(unsigned char a);
-void __fastcall__ setCameraX(int x);
-void __fastcall__ setCameraY(int y);
 
 char P_Random(void);
 
@@ -129,9 +127,13 @@ char *caLevelNames[10] =
   "military base"
 };
 
-int playerx;
-int playery;
-char playera;
+extern int playerx;
+#pragma zpsym ("playerx")
+extern int playery;
+#pragma zpsym ("playery")
+extern char playera;
+#pragma zpsym ("playera")
+
 char playerSector;
 
 int playeroldx;
@@ -145,7 +147,7 @@ int playeroldy;
 
 char shells;
 char bullets;
-char weapons[5];
+char weapons[5]; // fist, chainsaw, pistol, shotgun, chaingun
 char weapon;
 char armor;
 char combatArmor;
@@ -155,7 +157,8 @@ char endLevel;
 char level;
 char clev = 0;
 
-// TODO : signed char distAtCenterOfView
+// information about what is in the center of view 
+// distance information recorded as h from testfilled(0)
 char typeAtCenterOfView;
 char itemAtCenterOfView;
 
@@ -262,8 +265,6 @@ void __fastcall__ updateAcid(void)
     }
   }
 }
-
-
 
 void __fastcall__ openDoor(char edgeGlobalIndex)
 {
@@ -962,6 +963,7 @@ void __fastcall__ setUpScreenForGameplay(void)
   drawFace();  
 }
 
+#if 0
 signed char updateCheatCodes(void);
 char *cheatText[] =
 {
@@ -970,9 +972,11 @@ char *cheatText[] =
   "change level",
   "reveal map",
 };
+#endif
 
 void handleCheatCodes(void)
 {
+#if 0
   signed char i = updateCheatCodes();
   if (i != -1)
   {
@@ -1018,6 +1022,7 @@ void handleCheatCodes(void)
       automap_setEdges();
     }
   }
+#endif
 }
 
 char caLevel[] = "pe1m1";
@@ -1167,22 +1172,21 @@ void __fastcall__ updateWeapons(char keys)
   }
 
   // change weapon
-  // TODO : check for keypress, decode number key as weapon switch
- #if 0
-  if (PEEK(198) > 0)
   {
-    char w = PEEK(631) - 49;
-    if (w < 4)
+    char numkeys = getNumKeys();
+    if (numkeys)
     {
-      if (w != 0 || weapons[1])
-      {
-        ++w;
+      char w = weapon;
+      if (numkeys & KEY_1) {
+        w = (weapon==0);  // 0 or 1 switching between fist and chainsaw
+      } else if (numkeys & KEY_2) {
+        w = 2;
+      } else if (numkeys & KEY_3) {
+        w = 3;
+      } else if (numkeys & KEY_4) {
+        w = 4;
       }
-      // switch between chainsaw and fist
-      if (w < 2 && w == weapon)
-      {
-        w = 1 - w;
-      }
+
       if (w != weapon && weapons[w])
       {
         preparePickupMessage();
@@ -1196,7 +1200,6 @@ void __fastcall__ updateWeapons(char keys)
       }
     }
   }
-#endif
 }
 
 void __fastcall__ victoryScreen(void)
@@ -1225,13 +1228,13 @@ int main()
 
   bordercolor(COLOR_BLACK);
   bgcolor(COLOR_BLACK);
-  
+
   // VIC : disable Shift-C= (toggle upper/lower case)
   // POKE(657,128);
 
   // VIC : install NMI handler
   install_nmi_handler();
-  
+
   // needed for clearScreen
   load_bank(0);
   load_data_file("phicode");
@@ -1242,8 +1245,8 @@ int main()
   // bit 2 : CHAREN : 0 vic sees char ROM; 1 vic sees RAM
   // bit 3-5 : cassette write/sense/motor
   // bit 6 : capslock
-  POKE(0x01,4); // VIC, CPU both use color bank 0, custom characters 
-  
+  POKE(0x01, 4); // VIC, CPU both use color bank 0, custom characters
+
   // clear screen
   clearScreen();
   cputsxy(0, 1, "R_Init: Init DOOM");
@@ -1252,26 +1255,26 @@ int main()
   load_data_file("psounds");
   load_data_file("plowcode");
   load_data_file("pstackcode");
-  
+
   playSoundInitialize(); // takes over IRQ so now its our IRQ not kernal
-  
+
   generateMulTab();
   load_data_file("psluts");
   load_data_file("ptextures");
-    
+
 start:
   bordercolor(COLOR_BLUE);
   playMusic("pe1m9mus");
-  
+
   setUpScreenForBitmap();
   setUpScreenForMenu();
-  
-  POKE(0x01,4); // VIC, CPU both use color bank 0, custom characters 
-  POKE(0xd018,25); // unshadowed : charset at $2000, screen at $0400
-  POKE(0xd016,0x18); // MC mode
-  POKE(0xd022,COLOR_YELLOW);
-  POKE(0xd023,COLOR_ORANGE);
-  
+
+  POKE(0x01, 4);      // VIC, CPU both use color bank 0, custom characters
+  POKE(0xd018, 25);   // unshadowed : charset at $2000, screen at $0400
+  POKE(0xd016, 0x18); // MC mode
+  POKE(0xd022, COLOR_YELLOW);
+  POKE(0xd023, COLOR_ORANGE);
+
   runMenu(0);
   level = 1;
   godMode = 0;
@@ -1320,7 +1323,7 @@ nextLevel:
   doorOpenTime[1] = 0;
   doorOpenTime[2] = 0;
   doorOpenTime[3] = 0;
-  
+
   p_enemy_resetMap();
   automap_resetEdges();
   for (i = 0; i < numObj; ++i)
@@ -1328,13 +1331,13 @@ nextLevel:
     if (getObjectType(i) < 5)
     {
       allocMobj(i);
-    }  
+    }
   }
-  
+
   addObjectsToSectors();
-  
+
   resetSectorsVisited();
-  
+
   numItemsGot = 0;
   playerx = getPlayerSpawnX();
   playery = getPlayerSpawnY();
@@ -1353,230 +1356,227 @@ nextLevel:
 
   while (health != 0 && !endLevel)
   {
-      if (!flashBorderTime)
-      {
-	  bordercolor(COLOR_GREEN);
-      }
-      if (flashBorderTime > 0)
-      {
-        --flashBorderTime;
-      }
+    if (!flashBorderTime)
+    {
+      bordercolor(COLOR_GREEN);
+    }
+    if (flashBorderTime > 0)
+    {
+      --flashBorderTime;
+    }
 
-      updateBarrels();
-      checkForPickups();
+    updateBarrels();
+    checkForPickups();
 
-      keys = readInput();
-      ctrlKeys = getControlKeys();
-      
-      if (ctrlKeys & KEY_ESC)
+    keys = readInput();
+    ctrlKeys = getControlKeys();
+
+    if (ctrlKeys & KEY_ESC)
+    {
+      pauseMapTimer();
+      setUpScreenForMenu();
+      if (runMenu(1) == 1)
       {
-        pauseMapTimer();
-        setUpScreenForMenu();
-        if (runMenu(1) == 1)
+        // reset
+        level = 1;
+        health = 0;
+        goto nextLevel;
+      }
+      setUpScreenForGameplay();
+    }
+    else if (ctrlKeys & KEY_CTRL)
+    {
+      pauseMapTimer();
+      automap();
+      setUpScreenForGameplay();
+    }
+
+    if (keys & KEY_TURNLEFT)
+    {
+      turnRightSpeed = 0;
+      if (turnLeftSpeed < 3)
+      {
+        ++turnLeftSpeed;
+      }
+      playera -= turnLeftSpeed;
+    }
+    else if (keys & KEY_TURNRIGHT)
+    {
+      turnLeftSpeed = 0;
+      if (turnRightSpeed < 3)
+      {
+        ++turnRightSpeed;
+      }
+      playera += turnRightSpeed;
+    }
+    else
+    {
+      turnLeftSpeed = 0;
+      turnRightSpeed = 0;
+    }
+    playera &= 63;
+    setCameraAngle(playera);
+    ca = ((int)get_cos()) << 1;
+    sa = ((int)get_sin()) << 1;
+    playeroldx = playerx;
+    playeroldy = playery;
+    if (keys & KEY_MOVELEFT)
+    {
+      playerx -= ca;
+      playery += sa;
+    }
+    if (keys & KEY_MOVERIGHT)
+    {
+      playerx += ca;
+      playery -= sa;
+    }
+
+    if (keys & KEY_FORWARD)
+    {
+      if (!(testFilled(0) > 32 && typeAtCenterOfView == TYPE_OBJECT))
+      {
+        playerx += (sa << 1);
+        playery += (ca << 1);
+      }
+    }
+    if (keys & KEY_BACK)
+    {
+      playerx -= sa;
+      playery -= ca;
+    }
+
+    updateWeapons(keys);
+
+    handleCheatCodes();
+
+    for (i = 0; i < 4; ++i)
+    {
+      char dot = doorOpenTime[i];
+      if (dot > 0)
+      {
+        --dot;
+        doorOpenTime[i] = dot;
+        if (dot == 0)
         {
-          // reset
-          level = 1;
-          health = 0;
-          goto nextLevel;
+          // try to close the door - should just get pushed out, so go ahead
+          basicCloseDoor(openDoors[i]);
+          playSound(SOUND_DORCLS);
         }
-        setUpScreenForGameplay();
       }
-      else if (ctrlKeys & KEY_CTRL)
-      {
-        pauseMapTimer();
-        automap();
-        setUpScreenForGameplay();
-      }
+    }
 
-      if (keys & KEY_TURNLEFT)
+    if (keys & KEY_USE)
+    {
+      // tried to open a door (pressed K)
+      if (testFilled(0) > 32)
       {
-        turnRightSpeed = 0;
-        if (turnLeftSpeed < 3)
+        if (typeAtCenterOfView == TYPE_DOOR)
         {
-            ++turnLeftSpeed;
-        }
-        playera -= turnLeftSpeed;
-      }
-      else if (keys & KEY_TURNRIGHT)
-      {
-        turnLeftSpeed = 0;
-        if (turnRightSpeed < 3)
-        {
-            ++turnRightSpeed;
-        }
-        playera += turnRightSpeed;
-      }
-      else
-      {
-        turnLeftSpeed = 0;
-        turnRightSpeed = 0;
-      }
-      playera &= 63;
-      setCameraAngle(playera);
-      ca = ((int)get_cos())<<1;
-      sa = ((int)get_sin())<<1;
-      playeroldx = playerx;
-      playeroldy = playery;
-      if (keys & KEY_MOVELEFT)
-      {
-        playerx -= ca;
-        playery += sa;
-      }
-      if (keys & KEY_MOVERIGHT)
-      {
-        playerx += ca;
-        playery -= sa;
-      }
-
-      if (keys & KEY_FORWARD)
-      {
-        if (!(testFilled(0) > 32 && typeAtCenterOfView == TYPE_OBJECT))
-        {
-          playerx += (sa<<1);
-          playery += (ca<<1);
-        } 
-      }
-      if (keys & KEY_BACK)
-      {
-        playerx -= sa;
-        playery -= ca;
-      }
-
-      updateWeapons(keys);
-
-      handleCheatCodes();
-
-      for (i = 0; i < 4; ++i)
-      {
-        char dot = doorOpenTime[i];
-        if (dot > 0)
-        {
-          --dot;
-          doorOpenTime[i] = dot;
-          if (dot == 0)
+          char tex = getEdgeTexture(itemAtCenterOfView);
+          char prop = (tex & EDGE_PROP_MASK) >> EDGE_PROP_SHIFT;
+          if (prop < 4)
           {
-            // try to close the door - should just get pushed out, so go ahead
-            basicCloseDoor(openDoors[i]);
-            playSound(SOUND_DORCLS);
+            if (haveKeyCard(prop))
+            {
+              openDoor(itemAtCenterOfView);
+            }
+            else
+            {
+              playSound(SOUND_OOF);
+              eraseMessage();
+              textcolor(7);
+              cputsxy(1, 16, "you need a       key");
+              cputsxy(2, 17, "to open this door!");
+              textcolor(keyCardColor(prop));
+              --prop;
+              cputsxy(12, 16, keyCardNames[prop]);
+              eraseMessageAfter = 8;
+            }
+          }
+          else if (prop == DOOR_TYPE_ONEWAY)
+          {
+            char otherSec = getOtherSector(itemAtCenterOfView, playerSector);
+            if (otherSec < playerSector)
+            {
+              openDoor(itemAtCenterOfView);
+            }
           }
         }
-      }
-          
-      if (keys & KEY_USE)
-      {
-        // tried to open a door (pressed K)
-        if (testFilled(0) > 32)
+        else if (typeAtCenterOfView == TYPE_SWITCH)
         {
-            if (typeAtCenterOfView == TYPE_DOOR)
-            {
-              char tex = getEdgeTexture(itemAtCenterOfView);
-              char prop = (tex & EDGE_PROP_MASK) >> EDGE_PROP_SHIFT;
-              if (prop < 4)
-              {
-                if (haveKeyCard(prop))
-                {
-                  openDoor(itemAtCenterOfView);
-                }
-                else
-                {
-                  playSound(SOUND_OOF);
-                  eraseMessage();
-                  textcolor(7);
-                  cputsxy(1, 16, "you need a       key");
-                  cputsxy(2, 17, "to open this door!");
-                  textcolor(keyCardColor(prop));
-                  --prop;
-                  cputsxy(12, 16, keyCardNames[prop]);
-                  eraseMessageAfter = 8;
-                }
-              }
-              else if (prop == DOOR_TYPE_ONEWAY)
-              {
-                char otherSec = getOtherSector(itemAtCenterOfView, playerSector);
-                if (otherSec < playerSector)
-                {
-                  openDoor(itemAtCenterOfView);
-                }
-              }
-            }
-            else if (typeAtCenterOfView == TYPE_SWITCH)
-            {
-              doEdgeSpecial(itemAtCenterOfView);
-            }
-        }
-      }
-
-      updateAcid();
-
-      {
-        setTickCount();
-        push_out();
-        print2DigitNumToScreen(getTickCount(), 0x0424);
-      }
-
-      setSectorVisited(playerSector);
-
-      setCameraX(playerx);
-      setCameraY(playery);
-
-      p_enemy_startframe();
-      clearSecondBuffer();
-      // draw to second buffer
-      setTickCount();
-      drawSpans();
-      print2DigitNumToScreen(getTickCount(), 0x0400 + 40*1 + 36);
-      // this takes about 30 raster lines
-      copyToPrimaryBuffer();
-      setTickCount();
-      p_enemy_think();
-      print2DigitNumToScreen(getTickCount(), 0x0400 + 40*2 + 36);
-      
-      ++frame;
-      frame &= 7;
-      
-      updateFace();
-
-      if (eraseMessageAfter != 0)
-      {
-        --eraseMessageAfter;
-        if (!eraseMessageAfter)
-        {
-          eraseMessage();
+          doEdgeSpecial(itemAtCenterOfView);
         }
       }
     }
-    pauseMapTimer();
 
-    if (!clev)
+    updateAcid();
+
     {
-      textcolor(2);
-      if (health == 0)
-      {
-        cputsxy(5, 13, "you are dead");
-        cputsxy(5, 15, "press return");
-      }
-      else
-      {
-        cputsxy(5, 13, "map complete");
-        playMusic("pintermus");
-        ++level;
-      }
-
-      meltScreen(health);
-    
-      if (health != 0)
-      {
-        summaryScreen();
-        if (level == 9)
-        {
-          victoryScreen();
-          goto start;
-        }
-      }
-      stopMusic();
+      setTickCount();
+      push_out();
+      print2DigitNumToScreen(getTickCount(), 0x0424);
     }
-    clev = 0;
-    goto nextLevel;
-    
-    return EXIT_SUCCESS;
+
+    setSectorVisited(playerSector);
+
+    p_enemy_startframe();
+    clearSecondBuffer();
+    // draw to second buffer
+    setTickCount();
+    drawSpans();
+    print2DigitNumToScreen(getTickCount(), 0x0400 + 40 * 1 + 36);
+    // this takes about 30 raster lines
+    copyToPrimaryBuffer();
+    setTickCount();
+    p_enemy_think();
+    print2DigitNumToScreen(getTickCount(), 0x0400 + 40 * 2 + 36);
+
+    ++frame;
+    frame &= 7;
+
+    updateFace();
+
+    if (eraseMessageAfter != 0)
+    {
+      --eraseMessageAfter;
+      if (!eraseMessageAfter)
+      {
+        eraseMessage();
+      }
+    }
+  }
+  pauseMapTimer();
+
+  if (!clev)
+  {
+    textcolor(2);
+    if (health == 0)
+    {
+      cputsxy(5, 13, "you are dead");
+      cputsxy(5, 15, "press return");
+    }
+    else
+    {
+      cputsxy(5, 13, "map complete");
+      playMusic("pintermus");
+      ++level;
+    }
+
+    meltScreen(health);
+
+    if (health != 0)
+    {
+      summaryScreen();
+      if (level == 9)
+      {
+        victoryScreen();
+        goto start;
+      }
+    }
+    stopMusic();
+  }
+  clev = 0;
+  goto nextLevel;
+
+  return EXIT_SUCCESS;
 }

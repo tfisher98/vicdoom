@@ -9,7 +9,7 @@
 #include "util.h"
 #include "menu.h"
 
-#pragma staticlocals(on)
+#pragma static-locals(on)
 
 void __fastcall__ drawLogo(void);
 

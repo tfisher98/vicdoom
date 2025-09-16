@@ -1,0 +1,50 @@
+Geometry version
+----------------
+curX : screen viewport column from -16 to +15 [screenX]
+   : actually increments xL to xR-1
+y1 : player relative y position of left wall edge [world]
+y2 : player relative y position of right wall edge [world]
+dy = (y2-y1) [world]
+x1 : player relative x position of left wall edge [world]
+x2 : player relative x position of right wall edge [world]
+dx = (x2-x1) [world]
+x4 : player relative x position of center of viewport column [world/8]
+   : x4 = 2*curX+3 from -29 to +33 [scale factor of *16 between screenX and world coordinate scales]
+numer = (16*(curX+3))*y1//256 - x1 
+denom = dx - (16*(curX+3))*dy//256 
+t = numer / denom [percent]
+   : fraction of total wall length along wall edge of intersection point of player->x4 viewline to wall
+   : capped at 0.255 in code
+curY = y1 + t*dy [world]
+   : player relative y position of intersection point
+h = 128.0/curY [screenY]
+   : pixel height of wall
+
+
+DDA version
+-----------
+Note numer=t*denom is affine in curX. Also denom is affine in curX. Update both of these by addition.
+
+   denom = dx-(16*dy*3//256) - 16*dy*curX//256
+   numer = -x1+(16*3*y1//256) + 16*y1*curX//256
+
+Also h is affine in curX:
+
+   h = 128/(y1 + t*dy) 
+     = 128*denom/(y1*denom + dy*numer)
+     = 128*denom/(y1*dx - (16*(curX+3))*dy*y1//256 + (16*(curX+3))*dy*y1//256 - x1*dy)
+     = 128*denom/(y1*dx - x1*dy)
+     = 128*denom/(y1*x2 - y1*x1 - x1*y2 + x1*y1)
+     = 128*denom/(y1*x2 - x1*y2)
+     = (128/(y1*x2-x1*y2))*(dx-(16*dy*3//256)) - (128/(y1*x2-x1*y2))*16*dy*curX//256
+     = 8*(32*dx-3*dy)/(y1*x2-x1*y2) - (8*dy/(y1*x2-x1*y2))*curX
+
+Note (y1*x2-x1*y2) = (Wy1 - Py)*(Wx2 - Px) - (Wx1 - Px)*(Wy2 - Py)
+     = Wy1*Wx2-Wx1*Wy2 -Wy1*Px-Wx2*Py+Wx1*Py+Wy2*Px +Px*Py-Px*Py
+     = Wy1*Wx2-Wx1*Wy2 + (Wy2-Wy1)*Px -(Wx2-Wx1)*Py
+
+compare push_out_from_edge which defines 
+   height = px*ey - py*ex
+      = (Px - Wx1)*(Wy2 - Wy1) - (Py - Wy1)*(Wx2 - Wx1)
+      = Wy1*Wx2-Wx1*Wy2 + (Wy2-Wy1)*Px - (Wx2-Wx1)*Py
+

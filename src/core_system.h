@@ -13,6 +13,7 @@ void __fastcall__ playMusic(char *name);
 
 char __fastcall__ readInput(void);
 char __fastcall__ getControlKeys(void);
+char __fastcall__ getNumKeys(void);
 
 // SADWJLIK
 
@@ -39,3 +40,9 @@ char __fastcall__ getControlKeys(void);
 #define KEY_ESC    0x80 // ??0x80 on c128 for back arrow ?? 0x01 on VIC
 #define KEY_RETURN 0x01 // 0x80 on VIC
 
+// 12---534
+#define KEY_1 0x80
+#define KEY_2 0x40
+#define KEY_3 0x02
+#define KEY_4 0x01
+#define KEY_5 0x04

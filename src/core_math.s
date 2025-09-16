@@ -14,8 +14,6 @@
 .export _leftShift4ThenDiv
 .export _getObjectTexIndex
 .export _setCameraAngle
-.export _setCameraX
-.export _setCameraY
 .export _get_sin
 .export _get_cos
 .export _getSinOf
@@ -474,23 +472,6 @@ rts
 
 .endproc
 
-; ---------------------------------------------------------------
-; void __fastcall__ _setCameraX/Y(int val);
-; ---------------------------------------------------------------
-
-.proc _setCameraX: near
-sta cameraX
-stx cameraX+1
-rts
-.endproc
-
-.proc _setCameraY: near
-sta cameraY
-stx cameraY+1
-rts
-.endproc
-
-
 _get_sin:
 lda sina
 rts
@@ -498,7 +479,6 @@ rts
 _get_cos:
 lda cosa
 rts
-
 
 _getSinOf:
 tay

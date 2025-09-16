@@ -17,6 +17,7 @@
 ;; updateInput : IRQ access : TODO move out of ZP
 .exportzp keys            := $34
 .exportzp ctrlKeys        := $35
+.exportzp numkeys         := $36
 
 ;; core_math
 .exportzp tmple           := $40
@@ -33,14 +34,17 @@
 ;; core_math
 .exportzp savex           := $4c
 .exportzp savex_hi        := $4d
-.exportzp angle           := $50
 ;; core_math / mapAsm
+.exportzp angle           := $50
 .exportzp cosa            := $51
 .exportzp sina            := $52
 .exportzp cameraX         := $57
 .exportzp cameraX_hi      := $58
 .exportzp cameraY         := $59
 .exportzp cameraY_hi      := $5a
+.exportzp _playera        := $50 ; alias of angle : TODO consolidate
+.exportzp _playerx        := $57 ; alias of cameraX : TODO rename
+.exportzp _playery        := $59 ; alias of cameraY : TODO rename
 ;; core_math
 .exportzp T1              := $5b
 .exportzp T2              := $5c

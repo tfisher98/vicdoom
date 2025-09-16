@@ -2,7 +2,7 @@
 .segment "CODE"
 
 .importzp sp, sreg, KEY_COUNT
-.importzp keys, ctrlKeys
+.importzp keys, ctrlKeys, numkeys
 .import KEYD
 
 .export _scan_keyboard
@@ -17,6 +17,7 @@
 .export updateInput
 .export _readInput
 .export _getControlKeys
+.export _getNumKeys
 
 .autoimport on
 
@@ -140,6 +141,8 @@ storedKeys:
 .byte 0
 storedCtrlKeys:
 .byte 0
+storedNumKeys:
+.byte 0
 somethingToRead:
 .byte 0
 
@@ -212,8 +215,28 @@ read:
 	ora keys
 	sta keys
 	
+    ; query the keyboard line containing (c128) <F7>4680-<Clr>2
+    ldy #$F7
+	sty $dc01
+	lda $dc00
+	lsr
+	ora #%10111110  ; ~(-2----4)
+	tax
+    ; query the keyboard line containing (c128) <Del>3579+<GBP>1
+	ldy #$fe
+	sty $dc01
+	lda $dc00       
+    ora #%01111001 ; ~(1----53-)
+    axs #$0        ; x=~(12---534)
+	txa
+	eor #$ff
+	ora numkeys
+	sta numkeys
+    
 	rts	
 .endproc
+
+.segment "CODE"
 
 .proc _readInput : near
 	lda somethingToRead
@@ -229,6 +252,9 @@ read:
 	lda keys
 	stx keys
 	sta storedKeys
+	lda numkeys
+	stx numkeys
+	sta storedNumKeys
 	
 	stx somethingToRead
 	
@@ -239,5 +265,10 @@ end:
 
 .proc _getControlKeys : near
 	lda storedCtrlKeys
+	rts	
+.endproc
+
+.proc _getNumKeys : near
+	lda storedNumKeys
 	rts	
 .endproc
