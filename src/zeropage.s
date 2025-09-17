@@ -63,6 +63,22 @@
 .exportzp xToTransform_hi := $69
 .exportzp yToTransform    := $6a
 .exportzp yToTransform_hi := $6b
+
+;; drawLine
+.exportzp x0 := $6c
+.exportzp y0 := $6e
+.exportzp x1 := $70
+.exportzp y1 := $72
+.exportzp dx := $74
+.exportzp dy := $75
+.exportzp sx := $76
+.exportzp sy := $78
+.exportzp ndxp1 := $7a
+.exportzp err := $7b
+.exportzp addr := $7c
+.exportzp chk := $7e
+.exportzp drewAPixel := $7f
+
 ;; mapAsm
 .exportzp edgeIndex       := $80
 .exportzp sectorIndex     := $81

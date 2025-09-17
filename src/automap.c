@@ -8,7 +8,7 @@
 
 #include "automap.h"
 
-#pragma staticlocals(on)
+#pragma static-locals(on)
 
 #define POKE(addr,val) ((*(unsigned char *)(addr)) = val)
 #define PEEK(addr) (*(unsigned char *)(addr))
@@ -24,7 +24,7 @@ void __fastcall__ automap_draw(int offsetX, int offsetY, char zoom, char player_
 void __fastcall__ automap_enter(void)
 {
   // write white/mono to the colour memory
-  POKE(0x900F, 8 + 3);
+  // POKE(0x900F, 8 + 3); border color
   setupBitmap(1); // mono, white
   // reset offset
   offsetX = 0;
