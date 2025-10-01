@@ -14,7 +14,6 @@
 .endif
 
 .export     _drawColumn
-.export     _drawColumnSameY
 .export     _drawColumnTransparent
 .export     _clearSecondBuffer
 .export     _copyToPrimaryBuffer
