@@ -20,7 +20,6 @@
 .export     _copyToPrimaryBuffer
 .export     _clearFilled
 .export     _testFilled
-.export     _setFilled
 
 .import _fastMultiplySetup16x8
 .import _fastMultiply16x8
@@ -106,19 +105,6 @@ keepclearing:
 	rts
 .endproc
 
-.proc _setFilled : near
-	; A holds h
-	; TOS holds x
-	tay
-	ldx #0
-	lax (sp,x)
-	axs #-16		; add HALFSCREENWIDTH	
-	tya
-	sta filled,x
-	jmp incsp1	
-.endproc
-
-
 ; ---------------------------------------------------------------
 ; void __near__ __fastcall__ drawColumn(char textureIndex, char texI, signed char curX, short curY, unsigned short h)
 ; ---------------------------------------------------------------
@@ -201,11 +187,17 @@ _drawColumnSameY:
 ldy #2
 lda (sp),y
 clc
-adc #16
+adc #16 ; HALFSCREENWIDTH
 sta curX
+
+; setFilled
+tax
+lda fullheight
+sta filled,x 
 
 ; modify screen mask code
 
+txa
 and #$03
 tax
 lda tmasktab,x

@@ -20,13 +20,11 @@ char __fastcall__ getObjectTexIndex(unsigned int halfWidth, unsigned int x);
 
 // TODO : these should be in display_blitter.h
 void __fastcall__ drawColumn(char textureIndex, char texI, signed char curX, short curY, unsigned char h);
-void __fastcall__ drawColumnSameY(char textureIndex, char texI, signed char curX, short curY, unsigned char h);
 void __fastcall__ drawColumnTransparent(char textureIndex, char texYStart, char texYEnd, char texI, signed char curX, short curY, unsigned char h);
 
 // TODO : these should be local to display_geometry
 void __fastcall__ clearFilled(void);
 unsigned char __fastcall__ testFilled(signed char col);
-void __fastcall__ setFilled(signed char col, unsigned char y);
 
 void __fastcall__ preTransformSectors(void);
 void __fastcall__ transformSectorToScreenSpace(char sectorIndex);
@@ -187,7 +185,6 @@ void __fastcall__ drawWall(char sectorIndex, char curEdgeIndex, char nextEdgeInd
     if (curY <= 0) continue;
     
     h = div128over(curY);
-    setFilled(curX, (unsigned char)h);
     
     if (fit==0) {
       fastMultiplySetup8x8(t>>1);
@@ -301,10 +298,8 @@ void __fastcall__ drawObject(char o, int vx, int vy, signed char x_L, signed cha
     }
   } else {
     for (curX = startX; curX != endX; ++curX, u+=du) {
-      if (testFilled(curX) < hc) {
-        setFilled(curX, hc);
+      if (testFilled(curX) < hc) 
         drawColumn(textureIndex, u>>8, curX, vy, hc);
-      }
     }
   }
 }

@@ -69,7 +69,6 @@
 #include "display_geometry.h"
 #include "playSound.h"
 #include "mapAsm.h"
-#include "drawColumn.h"
 #include "automap.h"
 #include "p_enemy.h"
 #include "util.h"
@@ -77,7 +76,7 @@
 #include "enemy.h"
 #include "menu.h"
 
-#pragma static-locals(on)
+#pragma staticlocals(on)
 
 unsigned char __fastcall__ testFilled(signed char col);
 
@@ -1520,13 +1519,11 @@ nextLevel:
     setSectorVisited(playerSector);
 
     p_enemy_startframe();
-    clearSecondBuffer();
-    // draw to second buffer
+
     setTickCount();
-    drawSpans();
+    displayRenderFrame();
     print2DigitNumToScreen(getTickCount(), 0x0400 + 40 * 1 + 36);
-    // this takes about 30 raster lines
-    copyToPrimaryBuffer();
+
     setTickCount();
     p_enemy_think();
     print2DigitNumToScreen(getTickCount(), 0x0400 + 40 * 2 + 36);
