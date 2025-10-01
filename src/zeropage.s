@@ -31,6 +31,7 @@
 .exportzp texY            := $47
 .exportzp texY_hi         := $48
 .exportzp height          := $49
+.exportzp fullheight      := $4a
 ;; core_math
 .exportzp savex           := $4c
 .exportzp savex_hi        := $4d

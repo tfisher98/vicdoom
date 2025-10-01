@@ -38,7 +38,7 @@ buffer = $BE00
 .endmacro
 
 ; variables
-.importzp tmp, texIndex, texI, curX, texY, height
+.importzp tmp, texIndex, texI, curX, texY, height, fullheight
 
 .segment "DATA"
 
@@ -142,6 +142,10 @@ keepclearing:
 
 _drawColumn:
 
+cmp fullheight
+beq _drawColumnSameY ; shortcut case where we are at same y
+
+sta fullheight
 sta height
 
 loadaxfromstack 1

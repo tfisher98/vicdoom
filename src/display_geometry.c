@@ -13,6 +13,7 @@
 #include "enemy.h"
 #include "p_enemy.h"
 #include "automap.h"
+#include "drawColumn.h"
 
 // TODO : this is in core_math.s ??! needs to be moved
 char __fastcall__ getObjectTexIndex(unsigned int halfWidth, unsigned int x);
@@ -225,8 +226,9 @@ void __fastcall__ drawObject(char o, int vx, int vy, signed char x_L, signed cha
   char objectType = getObjectType(o);
   unsigned char w = getWidthFromHeight(texFrameWidthScale(objectType), hc);
 
-  char fliptexture = 0, first = 1;
-  char textureIndex, texI, startY, height;
+  char fliptexture = 0;
+  char textureIndex, startY, height;
+  // char texI
   int sx, u, du;
   signed char leftX, startX, endX, curX;
 
@@ -246,6 +248,10 @@ void __fastcall__ drawObject(char o, int vx, int vy, signed char x_L, signed cha
     startX = x_L;
   if (endX > x_R)
     endX = x_R;
+
+  if ((startX <= 0) && (endX > 0) && testFilled(0) < hc) {
+    recordObjectAtCenterOfView(o, transparent);
+  }
 
   if (objectType < 5)
   {
@@ -267,54 +273,37 @@ void __fastcall__ drawObject(char o, int vx, int vy, signed char x_L, signed cha
     }
   }
 
-  // TODO : current approach sometimes produces wrong last texture column
-  //   (bad rounding/too much accumulated error)
   // u = TEXWIDTH*(2*(startX-leftX)+1)/(4*w) = (TEXWIDTH/4)*(2*(startX-leftX)+1)*widthScale/h
   //   = (TEXWIDTH/512)*(2*(startX-leftX)+1)*widthScale*yc
   // du = TEXWIDTH*2/(4*w) = TEXWIDTH*widthScale/(2*h) = (TEXWIDTH/256)*widthScale*yc
-  texI = getObjectTexIndex(w, startX - leftX);
-  u = texI << 8;
+  // texI = getObjectTexIndex(w, startX - leftX);
+  // u = texI << 8;
+  u = getObjectTexIndex(w, startX - leftX) << 8;
   du = div88(8, w);
   if (transparent && (texFrameWidth(objectType) != 16))
   { // half width texture with offset
-    texI = texFrameStartX(objectType) + (texI >> 1);
+  //  texI = texFrameStartX(objectType) + (texI >> 1);
     du = du >> 1;
     u = u >> 1;
   }
   else if (fliptexture)
   {
-    texI = (TEXWIDTH - 1) ^ texI;
+    // texI = (TEXWIDTH - 1) ^ texI;
     du = -du;
     u += 255;
   }
 
-  for (curX = startX; curX != endX; ++curX)
-  {
-    texI = u >> 8;
-    u += du;
-
-    if (testFilled(curX) >= hc)
-      continue; // closer (taller) objects should obstruct
-
-    if (curX == 0) {
-      recordObjectAtCenterOfView(o, transparent);
+  if (transparent) {
+    for (curX = startX; curX != endX; ++curX, u+=du) {
+      // TODO I think there is a bug with half-width textures here 
+      if (testFilled(curX) < hc)
+        drawColumnTransparent(textureIndex, startY, height, u>>8, curX, vy, hc);
     }
-
-    if (transparent)
-    {
-      drawColumnTransparent(textureIndex, startY, height, texI, curX, vy, hc);
-    }
-    else
-    {
-      setFilled(curX, hc);
-      if (first)
-      {
-        first = 0;
-        drawColumn(textureIndex, texI, curX, vy, hc);
-      }
-      else
-      {
-        drawColumnSameY(textureIndex, texI, curX, vy, hc);
+  } else {
+    for (curX = startX; curX != endX; ++curX, u+=du) {
+      if (testFilled(curX) < hc) {
+        setFilled(curX, hc);
+        drawColumn(textureIndex, u>>8, curX, vy, hc);
       }
     }
   }
@@ -447,15 +436,6 @@ signed char __fastcall__ ffeis(char curSec, signed char x_L)
   return -1;
 }
 
-void __fastcall__ drawTransparentObjects(void)
-{
-  signed char i;
-  // draw back to front
-  for (i = numTransparent-1; i != -1; --i) {
-    drawObject(transO[i],transX[i],transY[i],transSXL[i],transSXR[i],1);
-  }
-}
-
 void __fastcall__ drawSpans(void)
 {
   signed char stackTop;
@@ -468,10 +448,6 @@ void __fastcall__ drawSpans(void)
   char nextEdge;
   signed char nextX;
   signed char thatSector;
-
-  clearFilled();
-  numTransparent = 0;
-  typeAtCenterOfView = 0;
 
 #if DEBUG_SECTORLISTS
   eraseMessage();
@@ -505,7 +481,6 @@ void __fastcall__ drawSpans(void)
      if (firstEdge == -1) continue;
      
      // now fill the span buffer with these edges
-
      curEdge = firstEdge;
      curX = x_L;
      while (curX != x_R)
@@ -521,23 +496,23 @@ void __fastcall__ drawSpans(void)
         {
            if (isEdgeDoor(edgeGlobalIndex))
            {
-	     automap_sawEdge(edgeGlobalIndex);
-	     curX = drawDoor(sectorIndex, curEdge, nextEdge, curX, nextX);
+             automap_sawEdge(edgeGlobalIndex);
+             curX = drawDoor(sectorIndex, curEdge, nextEdge, curX, nextX);
            }
            if (curX < nextX)
            {
-               // come back to this
-               if (stackTop < 10)
-               {
-                 ++stackTop;
-                 spanStackSec[stackTop] = thatSector;
-                 spanStackL[stackTop] = curX;
-                 spanStackR[stackTop] = nextX;
-               }
-               else
-               {
-                 print2DigitNumToScreen(thatSector, 0x0400 + 5*40);
-               }
+            // come back to this
+            if (stackTop < 10)
+            {
+              ++stackTop;
+              spanStackSec[stackTop] = thatSector;
+              spanStackL[stackTop] = curX;
+              spanStackR[stackTop] = nextX;
+            }
+            else
+            {
+              print2DigitNumToScreen(thatSector, 0x0400 + 5*40);
+            }
            }
         }
         else
@@ -553,6 +528,29 @@ void __fastcall__ drawSpans(void)
         curEdge = nextEdge;
      }
   }
+}
+
+void __fastcall__ drawTransparentObjects(void)
+{
+  signed char i;
+  // draw back to front
+  for (i = numTransparent-1; i != -1; --i) {
+    drawObject(transO[i],transX[i],transY[i],transSXL[i],transSXR[i],1);
+  }
+}
+
+void __fastcall__ displayRenderFrame(void) {
+  clearFilled();
+  numTransparent = 0;
+  typeAtCenterOfView = 0;
+
+  clearSecondBuffer();
+
+  drawSpans();
+  // renderSpans();
 
   drawTransparentObjects();
+  // renderTransparentObjects();
+
+  copyToPrimaryBuffer();
 }

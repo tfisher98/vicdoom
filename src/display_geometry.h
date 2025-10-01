@@ -1,1 +1,1 @@
-void __fastcall__ drawSpans(void);
+void __fastcall__ displayRenderFrame(void);
